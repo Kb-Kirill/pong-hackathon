@@ -1,3 +1,4 @@
+import cv2
 import pygame
 import os
 from hand_tracker import HandTracker
@@ -62,8 +63,13 @@ def draw_menu():
     screen.blit(text, text_rect)
 
 
-def draw_scene():
+def draw_scene(frame_surface=None):
     screen.fill(BG_COLOR)
+
+    # Отображаем окно камеры справа сверху
+    if frame_surface:
+        camera_rect = pygame.Rect(WIDTH - 330, 10, 320, 240)  # 10 пикселей отступа от краев
+        screen.blit(frame_surface, camera_rect)
 
     # Параметры для перспективы
     table_top_width = WIDTH * 0.2
@@ -169,8 +175,18 @@ while running:
 
     # --- Обновление состояния ---
     if game_state == GAME:
-        # Получаем координаты руки
-        frame, coords = tracker.process_frame(draw_point=False)
+
+        # Получаем координаты руки и кадр
+        frame, coords = tracker.process_frame(draw_point=True)  # Включаем точку для отображения на камере
+        if frame is not None:
+            # Конвертируем кадр OpenCV (BGR) в RGB и затем в текстуру Pygame
+            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            frame_surface = pygame.surfarray.make_surface(frame_rgb.swapaxes(0, 1))
+            # Масштабируем кадр до размера окна камеры (320x240)
+            frame_surface = pygame.transform.scale(frame_surface, (320, 240))
+        else:
+            frame_surface = None
+
         if coords:
             x, y = coords
             # Переводим нормализованные координаты в позицию ракетки
@@ -183,7 +199,7 @@ while running:
     if game_state == MENU:
         draw_menu()
     else:
-        draw_scene()
+        draw_scene(frame_surface)
 
     pygame.display.set_caption(f"Table Tennis Wall - FPS: {clock.get_fps():.2f}")
     pygame.display.flip()
