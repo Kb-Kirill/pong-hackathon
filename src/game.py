@@ -21,7 +21,8 @@ ball_pos = [WIDTH // 2, HEIGHT // 3]
 paddle_pos = [WIDTH // 2 - 30, HEIGHT - 140]  # x, y
 
 # --- Загрузка изображения ракетки ---
-paddle_image_path = os.path.join( "assets", "image", "paddle.png")
+script_dir = os.path.dirname(os.path.abspath(__file__))  # /Users/user/pong-hackathon/src
+paddle_image_path = os.path.join(script_dir, "..", "assets", "image", "paddle.png")
 paddle_image = pygame.image.load(paddle_image_path).convert_alpha()
 paddle_image = pygame.transform.scale(paddle_image, (140, 140))
 
