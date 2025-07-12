@@ -21,7 +21,6 @@ BUTTON_HOVER_COLOR = (45, 62, 71)  # Серый при наведении
 BUTTON_TEXT_COLOR = (255, 255, 255)  # Белый текст на кнопках
 SCORE_COLOR = (255, 255, 255)  # Белый для счёта
 SHADOW_COLOR = (100, 100, 100)  # Серый для тени мяча
-# В начале файла, где объявлены другие константы, добавьте:
 MIN_BALL_ANGLE = math.pi / 6  # 20 градусов (минимальный угол от горизонтали)
 MAX_BALL_ANGLE = math.pi / 3  # 70 градусов (максимальный угол от горизонтали)
 ball_top_y = 175  # Верхняя граница полёта мяча (выше стола)
@@ -48,12 +47,12 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 bg_music_path = os.path.join(script_dir, "..", "assets", "sound", "1.mp3")
 pygame.mixer.music.load(bg_music_path)
 pygame.mixer.music.set_volume(0.4)
-pygame.mixer.music.play(-1)           # зацикливаем
+pygame.mixer.music.play(-1)  # Зацикливаем
 
 # --- Звук удара (2.mp3) ---
 hit_sound_path = os.path.join(script_dir, "..", "assets", "sound", "2.mp3")
 hit_sound = pygame.mixer.Sound(hit_sound_path)
-hit_sound.set_volume(0.4)             # при желании
+hit_sound.set_volume(0.4)
 
 # --- Звук поражения (3.mp3) ---
 hit_lose_path = os.path.join(script_dir, "..", "assets", "sound", "3.mp3")
@@ -83,6 +82,9 @@ player_score = 0  # Счёт игрока
 opponent_score = 0  # Счёт стенки/противника
 paddle_collision_cooldown = 0  # Таймер для задержки между столкновениями
 wall_collision_cooldown = 0  # Таймер для задержки отскока от верхней границы
+boss_x = WIDTH // 2 - 132 // 2  # Начальная позиция X босса (центр, с учётом ширины 132)
+boss_flip_state = 0  # Состояние отзеркаливания: 0 (обычное), 1 (отзеркаленное)
+boss_rotation_timer = 0  # Таймер для анимации отзеркаливания
 
 # --- Загрузка изображения ракетки ---
 paddle_image_path = os.path.join(script_dir, "..", "assets", "image", "paddle.png")
@@ -103,14 +105,9 @@ background_image_path = os.path.join(script_dir, "..", "assets", "image", "backg
 background_image = pygame.image.load(background_image_path).convert()
 background_image = pygame.transform.scale(background_image, (WIDTH, HEIGHT))
 
-
-
 # --- Инициализация HandTracker ---
 tracker = HandTracker(max_num_hands=1)
 tracker.start_capture()
-
-# В начале файла, где объявляются переменные, добавьте:
-paddle_collision_cooldown = 0  # Таймер для задержки между столкновениями
 
 # --- Состояния игры ---
 MENU = "menu"
@@ -185,11 +182,9 @@ def draw_scene(frame_surface=None):
     right_leg_height = HEIGHT - table_bottom_y
     pygame.draw.rect(screen, leg_color, (right_leg_x, right_leg_y, leg_width, right_leg_height))
 
-
     # --- Второй игрок (boss) ---
     boss_width = 132
     boss_height = 200
-    boss_x = WIDTH // 2 - boss_width // 2
     boss_y = table_top_y - boss_height
     boss_image_scaled = pygame.transform.scale(table_bg_image, (boss_width, boss_height))
     if boss_rotation_timer > 0:
@@ -278,7 +273,7 @@ while running:
                     game_state = GAME
                     player_score = 0  # Сбрасываем счёт игрока
                     opponent_score = 0  # Сбрасываем счёт противника
-                    ball_pos = [WIDTH // 2, HEIGHT // 3]  # Сброс позиции мяча
+                    ball_pos = [WIDTH // 2, ball_top_y + 100]  # Сброс позиции мяча
                     reset_angle = random.uniform(MIN_BALL_ANGLE, MAX_BALL_ANGLE)
                     speed = random.uniform(6, 8)
                     ball_velocity = [
@@ -286,15 +281,17 @@ while running:
                         speed * math.sin(reset_angle)
                     ]
                     ball_direction = 1  # Сброс направления (вверх)
+                    boss_x = WIDTH // 2 - 132 // 2  # Сбрасываем позицию босса
             elif game_state == GAME:
                 # Кнопки в игре
                 menu_button_rect, restart_button_rect = draw_scene()
                 if menu_button_rect.collidepoint(mouse_pos):
                     game_state = MENU  # Возврат в меню
+                    boss_x = WIDTH // 2 - 132 // 2  # Сбрасываем позицию босса
                 elif restart_button_rect.collidepoint(mouse_pos):
                     player_score = 0  # Сброс счёта игрока
                     opponent_score = 0  # Сброс счёта противника
-                    ball_pos = [WIDTH // 2, HEIGHT // 3]  # Сброс позиции мяча
+                    ball_pos = [WIDTH // 2, ball_top_y + 100]  # Сброс позиции мяча
                     paddle_pos = [WIDTH // 2 - 70, HEIGHT - 140]  # Сброс позиции ракетки
                     reset_angle = random.uniform(MIN_BALL_ANGLE, MAX_BALL_ANGLE)
                     speed = random.uniform(6, 8)
@@ -303,6 +300,7 @@ while running:
                         speed * math.sin(reset_angle)
                     ]
                     ball_direction = 1  # Сброс направления (вверх)
+                    boss_x = WIDTH // 2 - 132 // 2  # Сбрасываем позицию босса
 
     # --- Обновление состояния ---
     if game_state == GAME:
@@ -310,6 +308,7 @@ while running:
             hit_sound.stop()
             hit_lose.stop()
             game_state = MENU
+            boss_x = WIDTH // 2 - 132 // 2  # Сбрасываем позицию босса
         # Получаем координаты руки и кадр
         frame, coords = tracker.process_frame(draw_point=True)
         if frame is not None:
@@ -356,7 +355,7 @@ while running:
             boss_flip_state = 1  # Начинаем с отзеркаленного состояния
             wall_collision_cooldown = 20  # ~0.33 сек при 60 FPS
 
-            # Пропадание мяча за нижнюю границу
+        # Пропадание мяча за нижнюю границу
         if ball_pos[1] >= table_bottom_y:
             opponent_score += 1
             hit_lose.play()
@@ -383,6 +382,16 @@ while running:
             player_score += 1
             paddle_collision_cooldown = 20
             ball_direction = 1  # Направление вверх после удара
+
+        # Обновление позиции босса по X
+        if ball_direction == 1:  # Мяч движется к боссу
+            target_x = ball_pos[0] - 136 // 2  # Цель: центр босса совпадает с мячом
+            # Ограничиваем движение в пределах верхней части стола
+            left_bound = WIDTH // 2 - table_top_width // 2
+            right_bound = WIDTH // 2 + table_top_width // 2 - 132
+            target_x = max(left_bound, min(right_bound, target_x))
+            # Плавное движение (lerp)
+            boss_x = boss_x * 0.9 + target_x * 0.1
 
         # Обновление анимации отзеркаливания оппонента
         if boss_rotation_timer > 0:
