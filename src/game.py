@@ -25,6 +25,9 @@ SHADOW_COLOR = (100, 100, 100)  # Серый для тени мяча
 MIN_BALL_ANGLE = math.pi / 6  # 20 градусов (минимальный угол от горизонтали)
 MAX_BALL_ANGLE = math.pi / 3  # 70 градусов (максимальный угол от горизонтали)
 
+WIN_COLOR = (0, 255, 0)  # Зеленый для победы
+LOSE_COLOR = (255, 0, 0)  # Красный для поражения
+
 
 # --- Инициализация pygame ---
 pygame.init()
@@ -113,6 +116,15 @@ def draw_menu():
     text = font_menu.render("Начать", True, BUTTON_TEXT_COLOR)
     text_rect = text.get_rect(center=button_rect.center)
     screen.blit(text, text_rect)
+
+    if player_score >= 11:
+        win_text = font_menu.render("ПОБЕДА!", True, WIN_COLOR)
+        win_rect = win_text.get_rect(center=(WIDTH // 2, HEIGHT // 2 - 50))
+        screen.blit(win_text, win_rect)
+    elif opponent_score >= 11:
+        lose_text = font_menu.render("ПОРАЖЕНИЕ", True, LOSE_COLOR)
+        lose_rect = lose_text.get_rect(center=(WIDTH // 2, HEIGHT // 2 - 50))
+        screen.blit(lose_text, lose_rect)
 
 def draw_scene(frame_surface=None):
     screen.blit(background_image, (0, 0))
@@ -218,7 +230,7 @@ def draw_scene(frame_surface=None):
         pygame.draw.rect(screen, BUTTON_HOVER_COLOR, menu_button_rect)
     else:
         pygame.draw.rect(screen, BUTTON_COLOR, menu_button_rect)
-    menu_text = font.render("В меню", True, BUTTON_TEXT_COLOR)
+    menu_text = font.render("Меню", True, BUTTON_TEXT_COLOR)
     screen.blit(menu_text, menu_button_rect.move(20, 5))
     if restart_button_rect.collidepoint(mouse_pos):
         pygame.draw.rect(screen, BUTTON_HOVER_COLOR, restart_button_rect)
