@@ -24,6 +24,7 @@ SHADOW_COLOR = (100, 100, 100)  # Серый для тени мяча
 # В начале файла, где объявлены другие константы, добавьте:
 MIN_BALL_ANGLE = math.pi / 6  # 20 градусов (минимальный угол от горизонтали)
 MAX_BALL_ANGLE = math.pi / 3  # 70 градусов (максимальный угол от горизонтали)
+ball_top_y = 175  # Верхняя граница полёта мяча (выше стола)
 
 WIN_COLOR = (0, 255, 0)  # Зеленый для победы
 LOSE_COLOR = (255, 0, 0)  # Красный для поражения
@@ -59,6 +60,9 @@ hit_lose_path = os.path.join(script_dir, "..", "assets", "sound", "3.mp3")
 hit_lose = pygame.mixer.Sound(hit_lose_path)
 hit_lose.set_volume(0.4)             # при желании
 
+boss_flip_state = 0  # Состояние отзеркаливания: 0 (обычное), 1 (отзеркаленное)
+boss_rotation_timer = 0  # Таймер для анимации отзеркаливания
+
 # --- Параметры стола (глобальные) ---
 table_top_width = WIDTH * 0.25  # Верхняя часть стола (узкая)
 table_bottom_width = WIDTH * 0.6  # Нижняя часть стола
@@ -73,6 +77,7 @@ paddle_pos = [WIDTH // 2 - 70, HEIGHT - 140]  # x, y (смещено для це
 player_score = 0  # Счёт игрока
 opponent_score = 0  # Счёт стенки/противника
 paddle_collision_cooldown = 0  # Таймер для задержки между столкновениями
+wall_collision_cooldown = 0  # Таймер для задержки отскока от верхней границы
 
 # --- Загрузка изображения ракетки ---
 paddle_image_path = os.path.join(script_dir, "..", "assets", "image", "paddle.png")
@@ -93,9 +98,14 @@ background_image_path = os.path.join(script_dir, "..", "assets", "image", "backg
 background_image = pygame.image.load(background_image_path).convert()
 background_image = pygame.transform.scale(background_image, (WIDTH, HEIGHT))
 
+
+
 # --- Инициализация HandTracker ---
 tracker = HandTracker(max_num_hands=1)
 tracker.start_capture()
+
+# В начале файла, где объявляются переменные, добавьте:
+paddle_collision_cooldown = 0  # Таймер для задержки между столкновениями
 
 # --- Состояния игры ---
 MENU = "menu"
@@ -163,11 +173,13 @@ def draw_scene(frame_surface=None):
     left_leg_y = table_bottom_y
     left_leg_height = HEIGHT - table_bottom_y
     pygame.draw.rect(screen, leg_color, (left_leg_x, left_leg_y, leg_width, left_leg_height))
+
     # Правая ножка
     right_leg_x = WIDTH // 2 + table_bottom_width // 2 - leg_width - 100
     right_leg_y = table_bottom_y
     right_leg_height = HEIGHT - table_bottom_y
     pygame.draw.rect(screen, leg_color, (right_leg_x, right_leg_y, leg_width, right_leg_height))
+
 
     # --- Второй игрок (boss) ---
     boss_width = 132
@@ -175,7 +187,11 @@ def draw_scene(frame_surface=None):
     boss_x = WIDTH // 2 - boss_width // 2
     boss_y = table_top_y - boss_height
     boss_image_scaled = pygame.transform.scale(table_bg_image, (boss_width, boss_height))
-    screen.blit(boss_image_scaled, (boss_x, boss_y))
+    if boss_rotation_timer > 0:
+        flipped_boss = pygame.transform.flip(boss_image_scaled, boss_flip_state == 1, False)
+        screen.blit(flipped_boss, (boss_x, boss_y))
+    else:
+        screen.blit(boss_image_scaled, (boss_x, boss_y))
 
     # --- Сетка ---
     net_y = table_top_y + int((table_bottom_y - table_top_y) * 0.38)
@@ -319,20 +335,27 @@ while running:
         if paddle_collision_cooldown > 0:
             paddle_collision_cooldown -= 1
 
+        # Уменьшаем таймер кулдауна для стены
+        if wall_collision_cooldown > 0:
+            wall_collision_cooldown -= 1
+
         # Отскок от верхней границы (стенка)
-        if ball_pos[1] <= table_top_y:
+        if ball_pos[1] <= ball_top_y and wall_collision_cooldown == 0:
             hit_sound.play()
             if abs(ball_velocity[1]) < 3:  # Если скорость слишком мала
                 ball_velocity[1] = 8  # Устанавливаем достаточную скорость
             else:
                 ball_velocity[1] = -ball_velocity[1] * 0.95
             ball_direction = -1  # Направление вниз после отскока
+            boss_rotation_timer = 30  # ~0.5 сек при 60 FPS
+            boss_flip_state = 1  # Начинаем с отзеркаленного состояния
+            wall_collision_cooldown = 20  # ~0.33 сек при 60 FPS
 
-        # Пропадание мяча за нижнюю границу
+            # Пропадание мяча за нижнюю границу
         if ball_pos[1] >= table_bottom_y:
             opponent_score += 1
             hit_lose.play()
-            ball_pos = [WIDTH // 2, HEIGHT // 3]  # Сброс позиции
+            ball_pos = [WIDTH // 2, ball_top_y + 100]  # Сброс позиции дальше от верхней границы
             reset_angle = random.uniform(MIN_BALL_ANGLE, MAX_BALL_ANGLE)
             speed = random.uniform(6, 8)
             ball_velocity = [
@@ -354,6 +377,14 @@ while running:
             player_score += 1
             paddle_collision_cooldown = 20
             ball_direction = 1  # Направление вверх после удара
+
+        # Обновление анимации отзеркаливания оппонента
+        if boss_rotation_timer > 0:
+            if boss_rotation_timer % 10 == 0:
+                boss_flip_state = 1 - boss_flip_state  # Чередуем 0 и 1
+            boss_rotation_timer -= 1
+            if boss_rotation_timer == 0:
+                boss_flip_state = 0  # Возвращаем обычное состояние
 
     # --- Рендер ---
     if game_state == MENU:
