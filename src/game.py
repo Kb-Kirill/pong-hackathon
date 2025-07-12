@@ -130,7 +130,7 @@ game_state = MENU
 def draw_menu():
     screen.blit(load_image, (0, 0))
     # Кнопка "Начать"
-    button_rect = pygame.Rect(WIDTH // 2 - 100, HEIGHT // 2, 200, 100)
+    button_rect = pygame.Rect(WIDTH // 2 - 100, HEIGHT // 2 - 50, 200, 100)  # Было HEIGHT // 2
     mouse_pos = pygame.mouse.get_pos()
     if button_rect.collidepoint(mouse_pos):
         pygame.draw.rect(screen, BUTTON_HOVER_COLOR, button_rect)
@@ -397,7 +397,7 @@ while running:
             ball_velocity[0] = relative_x * 12
             ball_velocity[1] = -abs(ball_velocity[1]) * 1.2
             hit_win.play()
-            player_score += 1
+            # player_score += 1
             paddle_collision_cooldown = 20
             ball_direction = 1  # Направление вверх после удара
 
