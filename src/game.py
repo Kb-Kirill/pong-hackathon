@@ -94,6 +94,9 @@ background_image = pygame.transform.scale(background_image, (WIDTH, HEIGHT))
 tracker = HandTracker(max_num_hands=1)
 tracker.start_capture()
 
+# В начале файла, где объявляются переменные, добавьте:
+paddle_collision_cooldown = 0  # Таймер для задержки между столкновениями
+
 # --- Состояния игры ---
 MENU = "menu"
 GAME = "game"
@@ -263,6 +266,7 @@ while running:
                     opponent_score = 0  # Сброс счёта противника
                     ball_pos = [WIDTH // 2, HEIGHT // 3]  # Сброс позиции мяча
                     paddle_pos = [WIDTH // 2 - 70, HEIGHT - 140]  # Сброс позиции ракетки
+<<<<<<< HEAD
                     reset_angle = random.uniform(MIN_BALL_ANGLE, MAX_BALL_ANGLE)
                     speed = random.uniform(6, 8)
                     ball_velocity = [
@@ -270,6 +274,15 @@ while running:
                         speed * math.sin(reset_angle)
                     ]
                     ball_direction = 1  # Сброс направления (вверх)
+=======
+<<<<<<< HEAD
+                    ball_velocity = [random.choice([-5, 5]), 5]  # Сброс скорости
+=======
+                    ball_velocity = [random.choice([-5, 5]), 5] # При сбросе мяча добавьте случайность:
+        print(f"Ball velocity: {ball_velocity}")
+
+>>>>>>> b63fbac (Фикс многократного посдчета очков и дрожания шарика возле ракетки)
+>>>>>>> 876027c (Фикс многократного посдчета очков и дрожания шарика возле ракетки)
 
     # --- Обновление состояния ---
     if game_state == GAME:
@@ -321,6 +334,7 @@ while running:
             opponent_score += 1
             hit_lose.play()
             ball_pos = [WIDTH // 2, HEIGHT // 3]  # Сброс позиции
+<<<<<<< HEAD
             reset_angle = random.uniform(MIN_BALL_ANGLE, MAX_BALL_ANGLE)
             speed = random.uniform(6, 8)
             ball_velocity = [
@@ -329,13 +343,28 @@ while running:
             ]
             ball_direction = 1  # Сброс направления (вверх)
             random.seed(time.time() + random.random())
+=======
+<<<<<<< HEAD
+            ball_velocity = [random.choice([-5, 5]), 5]  # Сброс скорости
+=======
+            ball_velocity = [random.choice([-5, 5]), 5]  # Сброс скорости, Случайный начальный угол
+>>>>>>> b63fbac (Фикс многократного посдчета очков и дрожания шарика возле ракетки)
+>>>>>>> 876027c (Фикс многократного посдчета очков и дрожания шарика возле ракетки)
 
         # Столкновение с ракеткой
         paddle_rect = pygame.Rect(paddle_pos[0], paddle_pos[1], 140, 140)
         collision_rect = paddle_rect.inflate(-paddle_rect.width // 2, -paddle_rect.height // 2)
         ball_rect = pygame.Rect(ball_pos[0] - 12, ball_pos[1] - 12, 24, 24)
+<<<<<<< HEAD
         if collision_rect.colliderect(ball_rect) and paddle_collision_cooldown == 0:
+<<<<<<< HEAD
             hit_sound.play()
+=======
+=======
+
+        if paddle_rect.colliderect(ball_rect) and paddle_collision_cooldown == 0:
+>>>>>>> b63fbac (Фикс многократного посдчета очков и дрожания шарика возле ракетки)
+>>>>>>> 876027c (Фикс многократного посдчета очков и дрожания шарика возле ракетки)
             relative_x = (ball_pos[0] - (paddle_pos[0] + 70)) / 70
             ball_velocity[0] = relative_x * 12
             ball_velocity[1] = -abs(ball_velocity[1]) * 1.2
