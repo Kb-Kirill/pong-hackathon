@@ -29,10 +29,22 @@ SHADOW_COLOR = (100, 100, 100)  # Серый для тени мяча
 MIN_BALL_ANGLE = math.pi / 6  # 20 градусов (минимальный угол от горизонтали)
 MAX_BALL_ANGLE = math.pi / 3  # 70 градусов (максимальный угол от горизонтали)
 
+<<<<<<< HEAD
 # В начале файла, где объявлены другие константы, добавьте:
 MIN_BALL_ANGLE = math.pi / 6  # 20 градусов (минимальный угол от горизонтали)
 MAX_BALL_ANGLE = math.pi / 3  # 70 градусов (максимальный угол от горизонтали)
 
+=======
+# После других констант добавить:
+INITIAL_BALL_SPEED = 7
+MAX_BALL_SPEED = 20
+SPEED_INCREASE_PER_HIT = 0.5  # На сколько увеличивать скорость после каждого удара
+HITS_FOR_SPEED_INCREASE = 3   # После скольки ударов увеличивать скорость
+
+# В разделе "Начальные позиции и состояние" добавить:
+hit_counter = 0  # Счетчик последовательных ударов
+current_ball_speed = INITIAL_BALL_SPEED
+>>>>>>> 6e7f207 (Добавляется ускорение движение мячя после каждой серии столкновений с ракеткой)
 
 # --- Инициализация pygame ---
 pygame.init()
@@ -354,6 +366,7 @@ while running:
         collision_rect = paddle_rect.inflate(-paddle_rect.width // 2, -paddle_rect.height // 2)
         ball_rect = pygame.Rect(ball_pos[0] - 12, ball_pos[1] - 12, 24, 24)
         if collision_rect.colliderect(ball_rect) and paddle_collision_cooldown == 0:
+<<<<<<< HEAD
             hit_sound.play()
             relative_x = (ball_pos[0] - (paddle_pos[0] + 70)) / 70
 <<<<<<< HEAD
@@ -366,6 +379,21 @@ while running:
             player_score += 1
             paddle_collision_cooldown = 20
             ball_direction = 1  # Направление вверх после удара
+=======
+            hit_counter += 1
+            
+            # Увеличиваем скорость после каждых HITS_FOR_SPEED_INCREASE ударов
+            if hit_counter >= HITS_FOR_SPEED_INCREASE and current_ball_speed < MAX_BALL_SPEED:
+                current_ball_speed += SPEED_INCREASE_PER_HIT
+                hit_counter = 0  # Сбрасываем счетчик
+                
+            relative_x = (ball_pos[0] - (paddle_pos[0] + 70)) / 70
+            ball_velocity[0] = relative_x * (15 + current_ball_speed * 0.5)  # Учитываем текущую скорость
+            ball_velocity[1] = -abs(ball_velocity[1]) * (1.2 + current_ball_speed * 0.02)  # Ускорение при ударе
+            
+            player_score += 1
+            paddle_collision_cooldown = 20
+>>>>>>> 6e7f207 (Добавляется ускорение движение мячя после каждой серии столкновений с ракеткой)
 
     # --- Рендер ---
     if game_state == MENU:
