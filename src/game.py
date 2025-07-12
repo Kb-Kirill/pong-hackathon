@@ -1,5 +1,7 @@
 import pygame
 import os
+from hand_tracker import HandTracker
+
 
 # --- Настройки экрана ---
 WIDTH, HEIGHT = 1200, 800
@@ -28,6 +30,9 @@ paddle_image = pygame.transform.scale(paddle_image, (140, 140))
 
 def draw_scene():
     screen.fill(BG_COLOR)
+
+    tracker = HandTracker(max_num_hands=1)
+    tracker.run()
 
     # Параметры для перспективы
     table_top_width = WIDTH * 0.2
