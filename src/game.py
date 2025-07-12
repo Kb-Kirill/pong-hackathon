@@ -190,7 +190,7 @@ while running:
         if coords:
             x, y = coords
             # Переводим нормализованные координаты в позицию ракетки
-            paddle_pos[0] = int((1 - x) * WIDTH - 70)  # Смещение на половину ширины ракетки
+            paddle_pos[0] = int(x * WIDTH - 70)  # Смещение на половину ширины ракетки
             paddle_pos[1] = int(y * HEIGHT - 70)
             # Ограничиваем движение ракетки по горизонтали
             paddle_pos[0] = max(0, min(paddle_pos[0], WIDTH - 140))

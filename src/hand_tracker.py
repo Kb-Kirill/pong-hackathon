@@ -43,6 +43,7 @@ class HandTracker:
         if not ret:
             return None, None
 
+        frame = cv2.flip(frame, 1)
         # Конвертация BGR в RGB
         frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
