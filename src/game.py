@@ -55,10 +55,15 @@ hit_sound_path = os.path.join(script_dir, "..", "assets", "sound", "2.mp3")
 hit_sound = pygame.mixer.Sound(hit_sound_path)
 hit_sound.set_volume(0.4)             # при желании
 
-# --- Звук поражения (2.mp3) ---
+# --- Звук поражения (3.mp3) ---
 hit_lose_path = os.path.join(script_dir, "..", "assets", "sound", "3.mp3")
 hit_lose = pygame.mixer.Sound(hit_lose_path)
 hit_lose.set_volume(0.4)             # при желании
+
+# --- Звук поражения (4.mp3) ---
+hit_win_path = os.path.join(script_dir, "..", "assets", "sound", "4.mp3")
+hit_win = pygame.mixer.Sound(hit_win_path)
+hit_win.set_volume(0.4)             # при желании
 
 boss_flip_state = 0  # Состояние отзеркаливания: 0 (обычное), 1 (отзеркаленное)
 boss_rotation_timer = 0  # Таймер для анимации отзеркаливания
@@ -374,6 +379,7 @@ while running:
             relative_x = (ball_pos[0] - (paddle_pos[0] + 70)) / 70
             ball_velocity[0] = relative_x * 12
             ball_velocity[1] = -abs(ball_velocity[1]) * 1.2
+            hit_win.play()
             player_score += 1
             paddle_collision_cooldown = 20
             ball_direction = 1  # Направление вверх после удара
