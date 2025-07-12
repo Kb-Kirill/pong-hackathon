@@ -74,6 +74,9 @@ background_image = pygame.transform.scale(background_image, (WIDTH, HEIGHT))
 tracker = HandTracker(max_num_hands=1)
 tracker.start_capture()
 
+# В начале файла, где объявляются переменные, добавьте:
+paddle_collision_cooldown = 0  # Таймер для задержки между столкновениями
+
 # --- Состояния игры ---
 MENU = "menu"
 GAME = "game"
@@ -235,7 +238,13 @@ while running:
                     opponent_score = 0  # Сброс счёта противника
                     ball_pos = [WIDTH // 2, HEIGHT // 3]  # Сброс позиции мяча
                     paddle_pos = [WIDTH // 2 - 70, HEIGHT - 140]  # Сброс позиции ракетки
+<<<<<<< HEAD
                     ball_velocity = [random.choice([-5, 5]), 5]  # Сброс скорости
+=======
+                    ball_velocity = [random.choice([-5, 5]), 5] # При сбросе мяча добавьте случайность:
+        print(f"Ball velocity: {ball_velocity}")
+
+>>>>>>> b63fbac (Фикс многократного посдчета очков и дрожания шарика возле ракетки)
 
     # --- Обновление состояния ---
     if game_state == GAME:
@@ -287,13 +296,22 @@ while running:
         if ball_pos[1] >= table_bottom_y:
             opponent_score += 1
             ball_pos = [WIDTH // 2, HEIGHT // 3]  # Сброс позиции
+<<<<<<< HEAD
             ball_velocity = [random.choice([-5, 5]), 5]  # Сброс скорости
+=======
+            ball_velocity = [random.choice([-5, 5]), 5]  # Сброс скорости, Случайный начальный угол
+>>>>>>> b63fbac (Фикс многократного посдчета очков и дрожания шарика возле ракетки)
 
         # Столкновение с ракеткой
         paddle_rect = pygame.Rect(paddle_pos[0], paddle_pos[1], 140, 140)
         collision_rect = paddle_rect.inflate(-paddle_rect.width // 2, -paddle_rect.height // 2)  # Сужаем зону
         ball_rect = pygame.Rect(ball_pos[0] - 12, ball_pos[1] - 12, 24, 24)
+<<<<<<< HEAD
         if collision_rect.colliderect(ball_rect) and paddle_collision_cooldown == 0:
+=======
+
+        if paddle_rect.colliderect(ball_rect) and paddle_collision_cooldown == 0:
+>>>>>>> b63fbac (Фикс многократного посдчета очков и дрожания шарика возле ракетки)
             relative_x = (ball_pos[0] - (paddle_pos[0] + 70)) / 70
             ball_velocity[0] = relative_x * 12
             ball_velocity[1] = -abs(ball_velocity[1]) * 1.2  # Ускорение при ударе
