@@ -1,0 +1,965 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+src/
+  game.py
+  hand_tracker.py
+  physics.py
+  test_physics.py
+.gitignore
+README.md
+requirements.txt
+test_camera.py
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path="src/test_physics.py">
+import unittest
+import math
+from physics import BallPhysics
+
+class TestBallPhysics(unittest.TestCase):
+    def setUp(self):
+        """Инициализация объекта физики перед каждым тестом"""
+        self.ball = BallPhysics(table_width=800, table_height=600, net_height=50)
+    
+    def print_ball_status(self, label=""):
+        """Вспомогательный метод для вывода статуса мяча"""
+        x, y, z = self.ball.get_position()
+        print(f"{label}: Pos=({x:.1f}, {y:.1f}, {z:.1f}) | Velocity=({self.ball.vx:.1f}, {self.ball.vy:.1f}, {self.ball.vz:.1f})")
+
+    def test_initial_state(self):
+        """Тест начального положения мяча"""
+        x, y, z = self.ball.get_position()
+        self.assertAlmostEqual(x, 400, delta=0.1)
+        self.assertAlmostEqual(y, 550, delta=0.1)
+        self.assertEqual(z, 0)
+        print("\nTest 1 - Initial Position:")
+        self.print_ball_status("Start")
+
+    def test_gravity_effect(self):
+        """Тест влияния гравитации на мяч"""
+        print("\nTest 2 - Gravity Effect:")
+        self.ball.reset_ball()
+        self.ball.vx, self.ball.vy, self.ball.vz = 0, 0, 5  # Задаём начальную вертикальную скорость
+        
+        for step in range(5):
+            self.ball.update(0.1)
+            self.print_ball_status(f"Step {step+1}")
+        
+        # Проверяем, что Z-координата уменьшается под действием гравитации
+        self.assertLess(self.ball.vz, 5)
+        self.assertLess(self.ball.z, 5 * 0.1 * 5)  # z = v0*t - (g*t²)/2
+
+    # Вариант 1 - Тестируем базовую физику (без модификаторов):
+    # Если хотите тестировать только базовую физику - используйте Вариант 1
+    def test_bounce_off_table(self):
+        """Тест отскока от стола (базовый случай)"""
+        print("\nTest 3 - Table Bounce:")
+        self.ball.reset_ball()
+        self.ball.x, self.ball.y, self.ball.z = 400, 300, 0
+        self.ball.vx, self.ball.vy, self.ball.vz = 0, 0, -4  # Только вертикальное движение
+        
+        self.print_ball_status("Before bounce")
+        self.ball.update(0.1)
+        self.print_ball_status("After bounce")
+        
+        # Проверяем только направление и примерный диапазон
+        self.assertGreater(self.ball.vz, 0)
+        self.assertAlmostEqual(self.ball.vz, 4 * self.ball.bounce, delta=0.5)
+    
+    # Вариант 2 - Тестируем продвинутую физику (с модификаторами):
+    # Если тестируете продвинутую физику - используйте Вариант 2
+    def test_bounce_off_table(self):
+        """Тест отскока от стола (с учётом горизонтальной скорости)"""
+        print("\nTest 3 - Table Bounce:")
+        self.ball.reset_ball()
+        self.ball.x, self.ball.y, self.ball.z = 400, 300, 0
+        self.ball.vx, self.ball.vy, self.ball.vz = 2, 0, -4
+        
+        expected_bounce = abs(-4) * (1 + 0.3 * abs(2)/10) * self.ball.bounce
+        
+        self.print_ball_status("Before bounce")
+        self.ball.update(0.1)
+        self.print_ball_status("After bounce")
+        
+        self.assertGreater(self.ball.vz, 0)
+        self.assertAlmostEqual(self.ball.vz, expected_bounce, delta=0.1)
+        
+        self.assertAlmostEqual(self.ball.vz, expected_bounce, delta=0.1,
+            msg=f"Expected vz ≈ {expected_bounce}, got {self.ball.vz}")
+                    
+
+    def test_net_collision(self):
+        """Тест столкновения с сеткой"""
+        print("\nTest 4 - Net Collision:")
+        self.ball.reset_ball()
+        net_pos = self.ball.table_height * 0.5
+        self.ball.x, self.ball.y, self.ball.z = 400, net_pos, 30
+        self.ball.vx, self.ball.vy, self.ball.vz = 5, 5, 0  # Летим в сетку
+        
+        self.print_ball_status("Before net hit")
+        self.ball.update(0.1)
+        self.print_ball_status("After net hit")
+        
+        # Скорости должны изменить направление и уменьшиться
+        self.assertLess(abs(self.ball.vx), 5)
+        self.assertLess(abs(self.ball.vy), 5)
+
+    def test_pseudo_3d_projection(self):
+        """Тест преобразования 3D в 2D координаты"""
+        print("\nTest 5 - 3D Projection:")
+        self.ball.reset_ball()
+        self.ball.x, self.ball.y, self.ball.z = 400, 300, 20
+        
+        screen_x, screen_y = self.ball.get_screen_position()
+        print(f"3D Position: (400, 300, 20) -> 2D Screen: ({screen_x:.1f}, {screen_y:.1f})")
+        
+        # Чем больше z и меньше y, тем выше на экране (меньше screen_y)
+        self.assertLess(screen_y, 300)
+
+    def test_out_of_bounds(self):
+        """Тест выхода мяча за пределы"""
+        print("\nTest 6 - Out of Bounds:")
+        self.ball.reset_ball()
+        self.ball.y = self.ball.table_height * 1.3  # Улетел за игрока
+        
+        self.assertTrue(self.ball.is_out())
+        print("Ball is out (behind player) -", self.ball.get_position())
+
+'''
+Это позволит вам:
+    Видеть как меняются координаты с каждым шагом
+        Наблюдать эффекты гравитации и отскоков
+        Проверять условия выхода мяча за пределы
+
+Тесты покрывают:
+    Начальное состояние
+    Гравитацию
+    Отскоки от стола и сетки
+    Преобразование 3D→2D
+
+Граничные условия
+    Какие ещё аспекты физики вы хотели бы протестировать? Например, можно добавить тесты для:
+    Ударов ракеткой (метод apply_hit())
+    Разных углов отскока от стенок
+    Эффектов вращения мяча
+'''
+def manual_test():
+    """Ручной тест с пошаговой симуляцией"""
+    ball = BallPhysics(800, 600, 50)
+    ball.reset_ball()
+    
+    print("\nManual Test Mode (press Enter to step, 'q' to quit):")
+    step = 0
+    while True:
+        step += 1
+        ball.update(0.1)
+        x, y = ball.get_screen_position()
+        print(f"Step {step}: 2D Pos=({x:.1f}, {y:.1f}) | 3D Pos={ball.get_position()}")
+        
+        if ball.is_out():
+            print("Ball is out of bounds!")
+            ball.reset_ball()
+        
+        if input().lower() == 'q':
+            break
+
+if __name__ == "__main__":
+    unittest.main(verbosity=2)
+    #manual_test()  # Раскомментируйте для ручного теста
+
+
+
+
+
+
+
+
+'''
+from physics import BallPhysics
+
+physics = BallPhysics(table_width=800, table_height=600, net_height=50)
+
+while game_running:
+    dt = clock.tick(60) / 1000.0  # дельта времени в секундах
+    
+    physics.update(dt)
+    ball_pos = physics.get_screen_position()
+    
+    if physics.is_out():
+        physics.reset_ball()
+    
+'''
+</file>
+
+<file path=".gitignore">
+pycache/
+venv/
+*.pyc
+*.log
+.DS_Store
+.idea
+</file>
+
+<file path="test_camera.py">
+import cv2
+import mediapipe as mp
+
+mp_hands = mp.solutions.hands.Hands(max_num_hands=1)
+cap = cv2.VideoCapture(0)
+
+while True:
+    ret, frame = cap.read()
+    if not ret:
+        break
+
+    rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    results = mp_hands.process(rgb)
+
+    if results.multi_hand_landmarks:
+        for hand_landmarks in results.multi_hand_landmarks:
+            print("Hand detected:", hand_landmarks)
+
+    cv2.imshow("Hand Tracking Test", frame)
+    if cv2.waitKey(1) & 0xFF == 27:
+        break
+
+cap.release()
+cv2.destroyAllWindows()
+</file>
+
+<file path="src/physics.py">
+import math
+import random
+
+
+'''
+Ключевые особенности:
+ - Упрощённая физика:
+    - Гравитация влияет только на вертикальную ось (Z)
+    - Отскоки обрабатываются инвертированием скорости с коэффициентом упругости
+    - Добавлено сопротивление воздуха для реалистичности
+
+  - Псевдо-3D эффект:
+    - Метод get_screen_position() преобразует 3D координаты в 2D с учётом перспективы
+    - Чем дальше мяч (меньше y), тем "выше" он отображается
+
+  - Столкновения:
+    - Сетка обрабатывается как зона в середине стола с ограничением по высоте
+    - Удары о стол/стенку теряют часть энергии (bounce коэффициент)
+
+  - Старт и сброс:
+    При сбросе мяч получает случайный начальный удар в сторону стенки
+'''
+
+
+
+class BallPhysics:
+    def __init__(self, table_width, table_height, net_height):
+        """
+        :param table_width: ширина стола (в пикселях/условных единицах)
+        :param table_height: длина стола (от игрока до стенки)
+        :param net_height: высота сетки (для проверки удара)
+        """
+        self.table_width = table_width
+        self.table_height = table_height
+        self.net_height = net_height
+        
+        # Параметры мяча (стартовая позиция и скорость)
+        self.reset_ball()
+        
+        # Физические параметры
+        self.gravity = 0.2  # "тяжесть" мяча
+        self.drag = 0.99    # сопротивление воздуха
+        self.bounce = 0.7   # упругость отскока
+        
+    def reset_ball(self):
+        """Сброс мяча в начальное положение (случайный начальный удар)"""
+        self.x = self.table_width / 2
+        self.y = self.table_height - 50  # старт у игрока
+        self.z = 0  # "высота" мяча (псевдо-3D)
+        
+        # Начальная скорость (случайный легкий удар к стенке)
+        self.vx = random.uniform(-2, 2)
+        self.vy = -random.uniform(8, 10)  # в сторону стены (отрицательное значение)
+        self.vz = random.uniform(5, 7)
+    
+    def update(self, dt):
+        """
+        Обновление позиции мяча с учётом физики
+        :param dt: время с прошлого обновления (для плавности)
+        """
+        # Применяем гравитацию к вертикальной скорости
+        self.vz -= self.gravity
+        
+        # Движение мяча
+        self.x += self.vx * dt
+        self.y += self.vy * dt
+        self.z += self.vz * dt
+        
+        # Применяем сопротивление воздуха
+        self.vx *= self.drag
+        self.vy *= self.drag
+        self.vz *= self.drag
+        
+        # Проверка столкновений
+        self._check_collisions()
+        
+    def _check_collisions(self):
+        """Обработка всех столкновений (стол, сетка, стенка)"""
+        # Столкновение с левой/правой границей стола
+        if self.x <= 0 or self.x >= self.table_width:
+            self.vx = -self.vx * self.bounce
+            self.x = max(0, min(self.table_width, self.x))
+        
+        # Столкновение с сеткой (посередине стола)
+        net_pos = self.table_height * 0.5  # сетка на половине стола
+        net_width = self.table_width * 0.1  # ширина сетки
+        
+        if (abs(self.y - net_pos) < net_width and 
+            self.z < self.net_height and 
+            (self.vx != 0 or self.vy != 0)):
+            
+            # Мяч ударился в сетку - отскок с потерей скорости
+            self.vx *= -0.5
+            self.vy *= -0.5
+            self.vz *= 0.3
+            return True  # Возвращаем True для звукового эффекта
+        
+        # Столкновение со стенкой (дальний край)
+        if self.y <= 0:
+            self.vy = -self.vy * self.bounce
+            self.y = 0
+            self.vz *= 0.8  # теряем немного энергии при ударе о стенку
+        
+        # Столкновение с "полом" (столом)
+        # Для большей зрелищности добавьте:
+        # if self.z <= 0:  # При ударе о стол
+            # sparkle_effect(self.x, self.y)  # Визуальный эффект
+        
+        # В physics.py внутри _check_collisions():
+        if self.z <= 0:
+            self.z = 0
+            # Модификатор от горизонтальной скорости
+            bounce_power = abs(self.vz) * (1 + 0.3 * abs(self.vx)/10)
+            self.vz = bounce_power * self.bounce
+            
+            if abs(self.vz) < 0.1:
+                self.vz = 0
+                
+        return False
+    
+    def is_out(self):
+        """Проверка, улетел ли мяч за пределы игровой зоны"""
+        return (self.y > self.table_height * 1.2 or  # улетел за игрока
+                abs(self.x - self.table_width/2) > self.table_width * 0.6 or  # вбок
+                self.z > 50)  # слишком высоко
+    
+    def get_position(self):
+        """Возвращает позицию мяча в формате (x, y, z)"""
+        return (self.x, self.y, self.z)
+    
+    def get_screen_position(self, perspective_factor=0.5):
+        """
+        Преобразует 3D позицию в 2D координаты для отрисовки с псевдо-3D эффектом
+        :param perspective_factor: сила перспективы (0-1)
+        """
+        # Чем дальше мяч (меньше y), тем выше он на экране (имитация 3D)
+        screen_y = self.table_height - self.y - self.z * perspective_factor
+        return (self.x, screen_y)
+    
+    # Для сетевого обмена
+    def get_state(self):
+        return (self.x, self.y, self.z, self.vx, self.vy, self.vz)
+    
+    def set_state(self, state):
+        self.x, self.y, self.z, self.vx, self.vy, self.vz = state
+</file>
+
+<file path="README.md">
+# 🏓 Gesture Pong
+
+Игра в настольный теннис (Pong), управляемая движением руки через вебкамеру с помощью OpenCV + Mediapipe.
+🚀 Полностью локально, без отправки данных в интернет.
+
+---
+
+## 🚀 Быстрый старт
+
+### 1️⃣ Склонируйте репозиторий
+
+```bash
+git clone https://github.com/Kb-Kirill/pong-hackathon
+cd gesture-pong
+```
+
+### 2️⃣ Создайте виртуальное окружение
+
+```bash
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+```
+
+### 3️⃣ Установите зависимости
+
+```bash
+pip install -r requirements.txt
+```
+
+---
+
+## 🔧 Зависимости
+
+* `pygame` — для визуализации игры
+* `opencv-python` — захват и обработка видео
+* `mediapipe` — детекция руки (или других частей тела)
+
+См. [`requirements.txt`](./requirements.txt) для версий.
+
+---
+
+## 🖥 Системные пакеты
+
+### Linux
+
+```bash
+sudo apt update
+sudo apt install libgl1 libgtk-3-dev
+```
+
+(необходимы для корректной работы OpenCV, открытия окон и т.д.)
+
+На Windows / MacOS дополнительно ничего не требуется.
+
+---
+
+## ✅ Тест камеры и Mediapipe
+
+Для проверки камеры и распознавания руки используется скрипт `test_camera.py`.
+
+### 📂 Запуск
+
+```bash
+python test_camera.py
+```
+
+Если рука обнаружена, в консоли будут появляться сообщения:
+
+```
+Hand detected: landmark ...
+```
+
+а в окне появится видео с камеры.
+
+---
+
+## ⚠ Если камера не открывается
+
+* Закрой другие приложения (Zoom, Discord и др.), которые могут её блокировать.
+* Попробуй сменить индекс:
+
+  ```python
+  cap = cv2.VideoCapture(1)
+  ```
+* Для Linux можно посмотреть устройства:
+
+  ```bash
+  ls /dev/video*
+  ```
+---
+
+## 📜 Лицензия
+
+MIT © 2025 — Сделано для хакатона ⚡
+</file>
+
+<file path="requirements.txt">
+pygame
+opencv-python
+mediapipe
+numpy
+websockets  # для PvP
+</file>
+
+<file path="src/hand_tracker.py">
+import cv2
+import mediapipe as mp
+import numpy as np
+
+
+class HandTracker:
+    def __init__(self, max_num_hands=1, min_detection_confidence=0.7, min_tracking_confidence=0.5):
+        # Инициализация Mediapipe
+        self.mp_hands = mp.solutions.hands
+        self.mp_drawing = mp.solutions.drawing_utils
+        self.hands = self.mp_hands.Hands(
+            max_num_hands=max_num_hands,
+            min_detection_confidence=min_detection_confidence,
+            min_tracking_confidence=min_tracking_confidence
+        )
+        self.cap = None
+
+    def start_capture(self):
+        """Запускает захват видео с веб-камеры."""
+        self.cap = cv2.VideoCapture(0)
+        if not self.cap.isOpened():
+            raise RuntimeError("Не удалось открыть веб-камеру")
+
+    def stop_capture(self):
+        """Останавливает захват и освобождает ресурсы."""
+        if self.cap:
+            self.cap.release()
+        cv2.destroyAllWindows()
+        self.hands.close()
+
+    def process_frame(self, draw_point=True):
+        """
+        Обрабатывает текущий кадр, возвращает нормализованные координаты центра ладони.
+        Args:
+            draw_point: bool, рисовать ли точку в центре ладони
+        Returns:
+            tuple: (frame, normalized_coords), где normalized_coords - (x, y) или None
+        """
+        if not self.cap or not self.cap.isOpened():
+            return None, None
+
+        ret, frame = self.cap.read()
+        if not ret:
+            return None, None
+
+        frame = cv2.flip(frame, 1)
+        # Конвертация BGR в RGB
+        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+        # Обработка кадра
+        results = self.hands.process(frame_rgb)
+
+        # Конвертация обратно в BGR для отображения
+        frame = cv2.cvtColor(frame_rgb, cv2.COLOR_RGB2BGR)
+
+        normalized_coords = None
+        if results.multi_hand_landmarks:
+            for hand_landmarks in results.multi_hand_landmarks:
+                # Рисуем landmarks на руке
+                self.mp_drawing.draw_landmarks(frame, hand_landmarks, self.mp_hands.HAND_CONNECTIONS)
+
+                # Получаем координаты центра ладони (landmark 0 - основание ладони)
+                palm_center = hand_landmarks.landmark[0]
+                h, w, _ = frame.shape
+                cx = int(palm_center.x * w)
+                cy = int(palm_center.y * h)
+
+                # Рисуем точку в центре ладони, если требуется
+                if draw_point:
+                    cv2.circle(frame, (cx, cy), 10, (0, 255, 0), -1)
+
+                # Сохраняем нормализованные координаты
+                normalized_coords = (palm_center.x, palm_center.y)
+
+        return frame, normalized_coords
+
+    def run(self):
+        """Запускает основной цикл обработки с отображением окна."""
+        self.start_capture()
+        try:
+            while self.cap.isOpened():
+                frame, coords = self.process_frame()
+                if frame is None:
+                    break
+
+                # Отображаем кадр
+                cv2.imshow('Hand Tracker', frame)
+
+                # Выводим координаты в консоль, если они есть
+                if coords:
+                    print(f"Normalized coords: x={coords[0]:.3f}, y={coords[1]:.3f}")
+
+                # Выход по нажатию 'q'
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    break
+        finally:
+            self.stop_capture()
+</file>
+
+<file path="src/game.py">
+import cv2
+import pygame
+import os
+from hand_tracker import HandTracker
+import random
+import math
+import time
+
+random.seed(time.time())
+
+# --- Настройки экрана ---
+WIDTH, HEIGHT = 1200, 800
+
+# --- Цвета ---
+BG_COLOR = (30, 30, 30)
+TABLE_COLOR = (1, 101, 163)  # Сине-голубой цвет стола
+NET_COLOR = (255, 255, 255)
+BALL_COLOR = (255, 255, 0)
+BUTTON_COLOR = (175, 238, 27)  # Зеленый для кнопок
+BUTTON_HOVER_COLOR = (45, 62, 71)  # Серый при наведении
+BUTTON_TEXT_COLOR = (255, 255, 255)  # Белый текст на кнопках
+SCORE_COLOR = (255, 255, 255)  # Белый для счёта
+SHADOW_COLOR = (100, 100, 100)  # Серый для тени мяча
+# В начале файла, где объявлены другие константы, добавьте:
+MIN_BALL_ANGLE = math.pi / 6  # 20 градусов (минимальный угол от горизонтали)
+MAX_BALL_ANGLE = math.pi / 3  # 70 градусов (максимальный угол от горизонтали)
+
+
+# --- Инициализация pygame ---
+pygame.init()
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("Table Tennis Wall")
+clock = pygame.time.Clock()
+
+# --- Шрифты ---
+font_menu = pygame.font.SysFont("arial", 48)
+font = pygame.font.SysFont("arial", 40)  # Шрифт для счёта и кнопок
+
+# --- Фоновая музыка ---
+script_dir = os.path.dirname(os.path.abspath(__file__))
+music_path = os.path.join(script_dir, "..", "assets", "sound", "1.mp3")
+pygame.mixer.init()
+pygame.mixer.music.load(music_path)
+pygame.mixer.music.set_volume(0.4)
+pygame.mixer.music.play(-1)
+
+# --- Параметры стола (глобальные) ---
+table_top_width = WIDTH * 0.25  # Верхняя часть стола (узкая)
+table_bottom_width = WIDTH * 0.6  # Нижняя часть стола
+table_top_y = 250
+table_bottom_y = HEIGHT - int(0.2 * HEIGHT)
+
+# --- Начальные позиции и состояние ---
+ball_pos = [WIDTH // 2, HEIGHT // 3]
+ball_velocity = [5, 5]  # Начальная скорость мяча
+paddle_pos = [WIDTH // 2 - 70, HEIGHT - 140]  # x, y (смещено для центрирования ракетки)
+player_score = 0  # Счёт игрока
+opponent_score = 0  # Счёт стенки/противника
+paddle_collision_cooldown = 0  # Таймер для задержки между столкновениями
+
+# --- Загрузка изображения ракетки ---
+paddle_image_path = os.path.join(script_dir, "..", "assets", "image", "paddle.png")
+paddle_image = pygame.image.load(paddle_image_path).convert_alpha()
+paddle_image = pygame.transform.scale(paddle_image, (140, 140))
+
+# --- Загрузка фонового изображения стола ---
+table_bg_image_path = os.path.join(script_dir, "..", "assets", "image", "boss.png")
+table_bg_image = pygame.image.load(table_bg_image_path).convert_alpha()
+
+# --- Загрузка изображения мяча ---
+ball_image_path = os.path.join(script_dir, "..", "assets", "image", "ball.png")
+ball_image = pygame.image.load(ball_image_path).convert_alpha()
+ball_image = pygame.transform.scale(ball_image, (50, 50))  # Под размер как был круг
+
+# --- Загрузка фонового изображения для всего окна ---
+background_image_path = os.path.join(script_dir, "..", "assets", "image", "background.jpg")
+background_image = pygame.image.load(background_image_path).convert()
+background_image = pygame.transform.scale(background_image, (WIDTH, HEIGHT))
+
+
+# --- Инициализация HandTracker ---
+tracker = HandTracker(max_num_hands=1)
+tracker.start_capture()
+
+# В начале файла, где объявляются переменные, добавьте:
+paddle_collision_cooldown = 0  # Таймер для задержки между столкновениями
+
+# --- Состояния игры ---
+MENU = "menu"
+GAME = "game"
+game_state = MENU
+
+def draw_menu():
+    screen.fill(BG_COLOR)
+    # Кнопка "Начать"
+    button_rect = pygame.Rect(WIDTH // 2 - 100, HEIGHT // 2 - 50, 200, 100)
+    mouse_pos = pygame.mouse.get_pos()
+    if button_rect.collidepoint(mouse_pos):
+        pygame.draw.rect(screen, BUTTON_HOVER_COLOR, button_rect)
+    else:
+        pygame.draw.rect(screen, BUTTON_COLOR, button_rect)
+
+    # Текст кнопки
+    text = font_menu.render("Начать", True, BUTTON_TEXT_COLOR)
+    text_rect = text.get_rect(center=button_rect.center)
+    screen.blit(text, text_rect)
+
+def draw_scene(frame_surface=None):
+    screen.blit(background_image, (0, 0))
+
+    # Окно камеры
+    if frame_surface:
+        camera_rect = pygame.Rect(WIDTH - 330, 10, 320, 240)
+        screen.blit(frame_surface, camera_rect)
+
+    # Левая половина стола
+    left_table_points = [
+        (WIDTH // 2, table_top_y),
+        (WIDTH // 2 - table_top_width // 2, table_top_y),
+        (WIDTH // 2 - table_bottom_width // 2, table_bottom_y),
+        (WIDTH // 2, table_bottom_y)
+    ]
+    pygame.draw.polygon(screen, TABLE_COLOR, left_table_points)
+
+    # Правая половина стола
+    right_table_points = [
+        (WIDTH // 2, table_top_y),
+        (WIDTH // 2 + table_top_width // 2, table_top_y),
+        (WIDTH // 2 + table_bottom_width // 2, table_bottom_y),
+        (WIDTH // 2, table_bottom_y)
+    ]
+    pygame.draw.polygon(screen, TABLE_COLOR, right_table_points)
+
+    # Центральная линия
+    pygame.draw.line(screen, NET_COLOR, (WIDTH // 2, table_top_y), (WIDTH // 2, table_bottom_y), 3)
+
+    # --- Ножки стола ---
+    leg_width = 20
+    leg_color = (50, 50, 50)  # Тёмно-серый цвет ножек
+
+    # Левая ножка
+    left_leg_x = WIDTH // 2 - table_bottom_width // 2 + 100  # немного внутрь
+    left_leg_y = table_bottom_y
+    left_leg_height = HEIGHT - table_bottom_y
+    pygame.draw.rect(screen, leg_color, (left_leg_x, left_leg_y, leg_width, left_leg_height))
+
+    # Правая ножка
+    right_leg_x = WIDTH // 2 + table_bottom_width // 2 - leg_width - 100  # немного внутрь
+    right_leg_y = table_bottom_y
+    right_leg_height = HEIGHT - table_bottom_y
+    pygame.draw.rect(screen, leg_color, (right_leg_x, right_leg_y, leg_width, right_leg_height))
+
+
+    # --- Второй игрок (boss) ---
+    boss_width = 132
+    boss_height = 200
+    boss_x = WIDTH // 2 - boss_width // 2
+    boss_y = table_top_y - boss_height
+    boss_image_scaled = pygame.transform.scale(table_bg_image, (boss_width, boss_height))
+    screen.blit(boss_image_scaled, (boss_x, boss_y))
+
+    # --- Сетка ---
+    net_y = table_top_y + int((table_bottom_y - table_top_y) * 0.38)
+    net_width = (table_top_width + (table_bottom_width - table_top_width) *
+                 ((net_y - table_top_y) / (table_bottom_y - table_top_y))) * 1.07
+    net_half_width = net_width // 2
+    for y in range(net_y - 25, net_y + 25, 6):
+        for x in range(-int(net_half_width), int(net_half_width), 6):
+            pygame.draw.rect(screen, NET_COLOR, (WIDTH // 2 + x, y, 2, 2))
+
+    # --- Тень мяча ---
+    # Условная высота Z: 0 у table_bottom_y, 1 у table_top_y
+    z = (table_bottom_y - ball_pos[1]) / (table_bottom_y - table_top_y)
+    z = max(0, min(1, z))  # Ограничиваем Z в [0, 1]
+    # Размер тени: от 30x20 (Z=0) до 15x10 (Z=1)
+    shadow_width = int(30 - 15 * z)
+    shadow_height = int(20 - 10 * z)
+    # Смещение тени вниз: от 0 (Z=0) до 40 (Z=1)
+    shadow_offset_y = int(40 * z)
+    # Прозрачность тени: от 180 (Z=0) до 40 (Z=1)
+    shadow_alpha = int(180 - 140 * z)
+    # Создаём поверхность для тени
+    shadow_surface = pygame.Surface((shadow_width, shadow_height), pygame.SRCALPHA)
+    pygame.draw.ellipse(shadow_surface, (*SHADOW_COLOR, shadow_alpha), (0, 0, shadow_width, shadow_height))
+    shadow_pos = (ball_pos[0] - shadow_width // 2, ball_pos[1] + shadow_offset_y - shadow_height // 2)
+    screen.blit(shadow_surface, shadow_pos)
+
+    # Мяч с текстурой
+    ball_rect = ball_image.get_rect(center=ball_pos)
+    screen.blit(ball_image, ball_rect)
+
+    # Ракетка
+    screen.blit(paddle_image, paddle_pos)
+
+    # Счёт
+    score_text = font.render(f"{player_score}:{opponent_score}", True, SCORE_COLOR)
+    score_rect = score_text.get_rect(center=(WIDTH // 2, 50))
+    screen.blit(score_text, score_rect)
+
+    # Кнопки
+    menu_button_rect = pygame.Rect(20, 20, 150, 50)
+    restart_button_rect = pygame.Rect(190, 20, 150, 50)
+
+    mouse_pos = pygame.mouse.get_pos()
+    if menu_button_rect.collidepoint(mouse_pos):
+        pygame.draw.rect(screen, BUTTON_HOVER_COLOR, menu_button_rect)
+    else:
+        pygame.draw.rect(screen, BUTTON_COLOR, menu_button_rect)
+    menu_text = font.render("В меню", True, BUTTON_TEXT_COLOR)
+    screen.blit(menu_text, menu_button_rect.move(20, 5))
+
+    if restart_button_rect.collidepoint(mouse_pos):
+        pygame.draw.rect(screen, BUTTON_HOVER_COLOR, restart_button_rect)
+    else:
+        pygame.draw.rect(screen, BUTTON_COLOR, restart_button_rect)
+    restart_text = font.render("Начать", True, BUTTON_TEXT_COLOR)
+    screen.blit(restart_text, restart_button_rect.move(15, 5))
+
+    return menu_button_rect, restart_button_rect
+
+# --- Главный игровой цикл ---
+running = True
+while running:
+    # События
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+            mouse_pos = event.pos
+            if game_state == MENU:
+                # Кнопка "Начать" в меню
+                button_rect = pygame.Rect(WIDTH // 2 - 100, HEIGHT // 2 - 50, 200, 100)
+                if button_rect.collidepoint(mouse_pos):
+                    game_state = GAME
+                    player_score = 0  # Сбрасываем счёт игрока
+                    opponent_score = 0  # Сбрасываем счёт противника
+                    ball_pos = [WIDTH // 2, HEIGHT // 3]  # Сброс позиции мяча
+                    reset_angle = random.uniform(MIN_BALL_ANGLE, MAX_BALL_ANGLE)  # Случайный угол в диапазоне
+                    speed = random.uniform(6, 8)  # Случайная скорость
+                    # Начальная скорость мяча
+                    ball_velocity = [
+                        speed * math.cos(reset_angle) * random.choice([-1, 1]),
+                        speed * math.sin(reset_angle) 
+                    ]
+            elif game_state == GAME:
+                # Кнопки в игре
+                menu_button_rect, restart_button_rect = draw_scene()
+                if menu_button_rect.collidepoint(mouse_pos):
+                    game_state = MENU  # Возврат в меню
+                elif restart_button_rect.collidepoint(mouse_pos):
+                    player_score = 0  # Сброс счёта игрока
+                    opponent_score = 0  # Сброс счёта противника
+                    ball_pos = [WIDTH // 2, HEIGHT // 3]  # Сброс позиции мяча
+                    paddle_pos = [WIDTH // 2 - 70, HEIGHT - 140]  # Сброс позиции ракетки
+                    ball_velocity = [random.choice([-5, 5]), 5] # При сбросе мяча добавьте случайность:
+
+    # --- Обновление состояния ---
+    if game_state == GAME:
+        # Получаем координаты руки и кадр
+        frame, coords = tracker.process_frame(draw_point=True)  # Включаем точку для отображения на камере
+        if frame is not None:
+            # Конвертируем кадр OpenCV (BGR) в RGB и затем в текстуру Pygame
+            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            frame_surface = pygame.surfarray.make_surface(frame_rgb.swapaxes(0, 1))
+            # Масштабируем кадр до размера окна камеры (320x240)
+            frame_surface = pygame.transform.scale(frame_surface, (320, 240))
+        else:
+            frame_surface = None
+
+        if coords:
+            x, y = coords
+            # Переводим нормализованные координаты в позицию ракетки
+            paddle_pos[0] = int(x * WIDTH - 70)  # Смещение на половину ширины ракетки
+            paddle_pos[1] = int(y * HEIGHT - 70)
+            if (paddle_pos[1] < 350) or (paddle_pos[1] > 650) or (paddle_pos[0] < 100) or (paddle_pos[0] > 1000):
+                paddle_image.set_alpha(120)
+            else:
+                paddle_image.set_alpha(255)
+            # Ограничиваем движение ракетки по горизонтали
+            paddle_pos[0] = max(0, min(paddle_pos[0], WIDTH - 140))
+
+        # Обновление физики мяча
+        ball_pos[0] += ball_velocity[0]
+        ball_pos[1] += ball_velocity[1]
+
+        # Уменьшаем таймер кулдауна
+        if paddle_collision_cooldown > 0:
+            paddle_collision_cooldown -= 1
+
+        # Отскок от верхней границы (стенка)
+        if ball_pos[1] <= table_top_y:
+            if abs(ball_velocity[1]) < 3:  # Если скорость слишком мала
+                ball_velocity[1] = 8  # Устанавливаем достаточную скорость
+            else:
+                ball_velocity[1] = -ball_velocity[1] * 0.95  # Меньшее затухание
+                
+            # Проверка на "залипание" у стенки
+            if abs(ball_pos[1] - table_top_y) < 5 and abs(ball_velocity[1]) < 1:
+                ball_velocity[1] = 5  # Даём небольшой толчок вниз
+
+        # Пропадание мяча за нижнюю границу
+        if ball_pos[1] >= table_bottom_y:
+            opponent_score += 1
+            ball_pos = [WIDTH // 2, HEIGHT // 3]  # Сброс позиции
+            reset_angle = random.uniform(MIN_BALL_ANGLE, MAX_BALL_ANGLE)
+            speed = random.uniform(6, 8)  # Случайная скорость в диапазоне 6-8
+            ball_velocity = [
+                speed * math.cos(reset_angle) * random.choice([-1, 1]),  # Случайное направление по горизонтали
+                speed * math.sin(reset_angle)  # Всегда вверх (к противнику)
+            ]
+            random.seed(time.time() + random.random())
+            
+        # Столкновение с ракеткой
+        paddle_rect = pygame.Rect(paddle_pos[0], paddle_pos[1], 140, 140)
+        collision_rect = paddle_rect.inflate(-paddle_rect.width // 2, -paddle_rect.height // 2)  # Сужаем зону
+        ball_rect = pygame.Rect(ball_pos[0] - 12, ball_pos[1] - 12, 24, 24)
+        if collision_rect.colliderect(ball_rect) and paddle_collision_cooldown == 0:
+            relative_x = (ball_pos[0] - (paddle_pos[0] + 70)) / 70
+            ball_velocity[0] = relative_x * 25
+            ball_velocity[1] = -abs(ball_velocity[1]) * 1.4  # Ускорение при ударе
+            player_score += 1
+            paddle_collision_cooldown = 20  # ~0.33 сек при 60 FPS
+
+    # --- Рендер ---
+    if game_state == MENU:
+        draw_menu()
+    else:
+        draw_scene(frame_surface)
+
+    pygame.display.set_caption(f"Table Tennis Wall - FPS: {clock.get_fps():.2f}")
+    pygame.display.flip()
+    clock.tick(60)
+
+# --- Очистка ---
+tracker.stop_capture()
+pygame.quit()
+</file>
+
+</files>
