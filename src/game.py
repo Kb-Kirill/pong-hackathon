@@ -105,6 +105,10 @@ background_image_path = os.path.join(script_dir, "..", "assets", "image", "backg
 background_image = pygame.image.load(background_image_path).convert()
 background_image = pygame.transform.scale(background_image, (WIDTH, HEIGHT))
 
+load_image_path = os.path.join(script_dir, "..", "assets", "image", "load_image.jpg")
+load_image = pygame.image.load(load_image_path).convert()
+load_image = pygame.transform.scale(load_image, (WIDTH, HEIGHT))
+
 # --- Инициализация HandTracker ---
 tracker = HandTracker(max_num_hands=1)
 tracker.start_capture()
@@ -115,7 +119,7 @@ GAME = "game"
 game_state = MENU
 
 def draw_menu():
-    screen.blit(background_image, (0, 0))
+    screen.blit(load_image, (0, 0))
     # Кнопка "Начать"
     button_rect = pygame.Rect(WIDTH // 2 - 100, HEIGHT // 2 - 50, 200, 100)
     mouse_pos = pygame.mouse.get_pos()
@@ -131,11 +135,11 @@ def draw_menu():
 
     if player_score >= 11:
         win_text = font_menu.render("ПОБЕДА!", True, WIN_COLOR)
-        win_rect = win_text.get_rect(center=(WIDTH // 2, HEIGHT // 2 - 50))
+        win_rect = win_text.get_rect(center=(WIDTH // 2, HEIGHT // 2 - 100))
         screen.blit(win_text, win_rect)
     elif opponent_score >= 11:
         lose_text = font_menu.render("ПОРАЖЕНИЕ", True, LOSE_COLOR)
-        lose_rect = lose_text.get_rect(center=(WIDTH // 2, HEIGHT // 2 - 50))
+        lose_rect = lose_text.get_rect(center=(WIDTH // 2, HEIGHT // 2 - 100))
         screen.blit(lose_text, lose_rect)
 
 def draw_scene(frame_surface=None):
