@@ -92,6 +92,20 @@ def draw_scene():
     # Центральная вертикальная линия стола
     pygame.draw.line(screen, NET_COLOR, (WIDTH // 2, table_top_y), (WIDTH // 2, table_bottom_y), 3)
 
+    # --- Сетка ---
+    # Смещаем сетку выше (на 30% от верхней части стола)
+    net_y = table_top_y + int((table_bottom_y - table_top_y) * 0.3)
+    # Рассчитываем ширину сетки, чтобы она соответствовала ширине стола на уровне net_y
+    net_width = (table_top_width + (table_bottom_width - table_top_width) * (
+            (net_y - table_top_y) / (table_bottom_y - table_top_y)
+    )) * 1.2  # Увеличиваем ширину на 20%
+    net_half_width = net_width // 2
+
+    # Квадраты сетки (имитация ячеек) на всю ширину
+    for y in range(net_y - 25, net_y + 25, 6):
+        for x in range(-int(net_half_width), int(net_half_width), 6):
+            pygame.draw.rect(screen, NET_COLOR, (WIDTH // 2 + x, y, 2, 2))
+
     # Мяч
     pygame.draw.circle(screen, BALL_COLOR, ball_pos, 12)
 
