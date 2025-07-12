@@ -325,8 +325,16 @@ while running:
             if abs(ball_velocity[1]) < 3:  # Если скорость слишком мала
                 ball_velocity[1] = 8  # Устанавливаем достаточную скорость
             else:
+<<<<<<< HEAD
                 ball_velocity[1] = -ball_velocity[1] * 0.95
             ball_direction = -1  # Направление вниз после отскока
+=======
+                ball_velocity[1] = -ball_velocity[1] * 0.95  # Меньшее затухание
+                
+        # Проверка на "залипание" у стенки
+        if abs(ball_pos[1] - table_top_y) < 5 and abs(ball_velocity[1]) < 1:
+            ball_velocity[1] = 5  # Даём небольшой толчок вниз
+>>>>>>> 52db629 (Пробуем пофиксить залипание у стенок)
 
         # Пропадание мяча за нижнюю границу
         if ball_pos[1] >= table_bottom_y:
@@ -348,8 +356,13 @@ while running:
         if collision_rect.colliderect(ball_rect) and paddle_collision_cooldown == 0:
             hit_sound.play()
             relative_x = (ball_pos[0] - (paddle_pos[0] + 70)) / 70
+<<<<<<< HEAD
             ball_velocity[0] = relative_x * 12
             ball_velocity[1] = -abs(ball_velocity[1]) * 1.2
+=======
+            ball_velocity[0] = relative_x * 25
+            ball_velocity[1] = -abs(ball_velocity[1]) * 1.4  # Ускорение при ударе
+>>>>>>> 52db629 (Пробуем пофиксить залипание у стенок)
             player_score += 1
             paddle_collision_cooldown = 20
             ball_direction = 1  # Направление вверх после удара
