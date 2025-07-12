@@ -11,6 +11,7 @@ TABLE_COLOR = (70, 130, 180)  # Сине-голубой цвет стола
 NET_COLOR = (255, 255, 255)
 BALL_COLOR = (255, 255, 0)
 BUTTON_COLOR = (100, 100, 100)  # Серый для кнопок
+BUTTON_HOVER_COLOR = (150, 150, 150)  # Серый при наведении
 BUTTON_TEXT_COLOR = (255, 255, 255)  # Белый текст на кнопках
 SCORE_COLOR = (255, 255, 255)  # Белый для счёта
 
@@ -20,25 +21,49 @@ screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Table Tennis Wall")
 clock = pygame.time.Clock()
 
-# --- Шрифт для текста ---
+# --- Шрифты ---
+font_menu = pygame.font.SysFont("arial", 48)
 font = pygame.font.SysFont("arial", 40)  # Шрифт для счёта и кнопок
 
 # --- Начальные позиции и состояние ---
 ball_pos = [WIDTH // 2, HEIGHT // 3]
-paddle_pos = [WIDTH // 2 - 30, HEIGHT - 140]  # x, y
+paddle_pos = [WIDTH // 2 - 70, HEIGHT - 140]  # x, y (смещено для центрирования ракетки)
 score = 0  # Начальный счёт
 
 # --- Загрузка изображения ракетки ---
-script_dir = os.path.dirname(os.path.abspath(__file__))  # /Users/user/pong-hackathon/src
+script_dir = os.path.dirname(os.path.abspath(__file__))
 paddle_image_path = os.path.join(script_dir, "..", "assets", "image", "paddle.png")
 paddle_image = pygame.image.load(paddle_image_path).convert_alpha()
 paddle_image = pygame.transform.scale(paddle_image, (140, 140))
 
+# --- Инициализация HandTracker ---
+tracker = HandTracker(max_num_hands=1)
+tracker.start_capture()
+
+# --- Состояния игры ---
+MENU = "menu"
+GAME = "game"
+game_state = MENU
+
+
+def draw_menu():
+    screen.fill(BG_COLOR)
+    # Кнопка "Начать"
+    button_rect = pygame.Rect(WIDTH // 2 - 100, HEIGHT // 2 - 50, 200, 100)
+    mouse_pos = pygame.mouse.get_pos()
+    if button_rect.collidepoint(mouse_pos):
+        pygame.draw.rect(screen, BUTTON_HOVER_COLOR, button_rect)
+    else:
+        pygame.draw.rect(screen, BUTTON_COLOR, button_rect)
+
+    # Текст кнопки
+    text = font_menu.render("Начать", True, BUTTON_TEXT_COLOR)
+    text_rect = text.get_rect(center=button_rect.center)
+    screen.blit(text, text_rect)
+
+
 def draw_scene():
     screen.fill(BG_COLOR)
-
-    # tracker = HandTracker(max_num_hands=1)
-    # tracker.run()
 
     # Параметры для перспективы
     table_top_width = WIDTH * 0.2
@@ -75,23 +100,33 @@ def draw_scene():
 
     # --- Счёт ---
     score_text = font.render(str(score), True, SCORE_COLOR)
-    score_rect = score_text.get_rect(center=(WIDTH // 2, 50))  # Центр сверху
+    score_rect = score_text.get_rect(center=(WIDTH // 2, 50))
     screen.blit(score_text, score_rect)
 
     # --- Кнопки ---
     # Кнопка "В меню"
     menu_button_rect = pygame.Rect(20, 20, 150, 50)
-    pygame.draw.rect(screen, BUTTON_COLOR, menu_button_rect)
+    mouse_pos = pygame.mouse.get_pos()
+    if menu_button_rect.collidepoint(mouse_pos):
+        pygame.draw.rect(screen, BUTTON_HOVER_COLOR, menu_button_rect)
+    else:
+        pygame.draw.rect(screen, BUTTON_COLOR, menu_button_rect)
     menu_text = font.render("В меню", True, BUTTON_TEXT_COLOR)
     menu_text_rect = menu_text.get_rect(center=menu_button_rect.center)
     screen.blit(menu_text, menu_text_rect)
 
     # Кнопка "Начать сначала"
     restart_button_rect = pygame.Rect(190, 20, 150, 50)
-    pygame.draw.rect(screen, BUTTON_COLOR, restart_button_rect)
+    if restart_button_rect.collidepoint(mouse_pos):
+        pygame.draw.rect(screen, BUTTON_HOVER_COLOR, restart_button_rect)
+    else:
+        pygame.draw.rect(screen, BUTTON_COLOR, restart_button_rect)
     restart_text = font.render("Начать", True, BUTTON_TEXT_COLOR)
     restart_text_rect = restart_text.get_rect(center=restart_button_rect.center)
     screen.blit(restart_text, restart_text_rect)
+
+    return menu_button_rect, restart_button_rect
+
 
 # --- Главный игровой цикл ---
 running = True
@@ -100,14 +135,45 @@ while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+            mouse_pos = event.pos
+            if game_state == MENU:
+                # Кнопка "Начать" в меню
+                button_rect = pygame.Rect(WIDTH // 2 - 100, HEIGHT // 2 - 50, 200, 100)
+                if button_rect.collidepoint(mouse_pos):
+                    game_state = GAME
+                    score = 0  # Сбрасываем счёт при начале игры
+            elif game_state == GAME:
+                # Кнопки в игре
+                menu_button_rect, restart_button_rect = draw_scene()
+                if menu_button_rect.collidepoint(mouse_pos):
+                    game_state = MENU  # Возврат в меню
+                elif restart_button_rect.collidepoint(mouse_pos):
+                    score = 0  # Сброс счёта
+                    ball_pos = [WIDTH // 2, HEIGHT // 3]  # Сброс позиции мяча
+                    paddle_pos = [WIDTH // 2 - 70, HEIGHT - 140]  # Сброс позиции ракетки
 
     # --- Обновление состояния ---
-    # пока пусто
+    if game_state == GAME:
+        # Получаем координаты руки
+        frame, coords = tracker.process_frame(draw_point=False)
+        if coords:
+            x, y = coords
+            # Переводим нормализованные координаты в позицию ракетки
+            paddle_pos[0] = int(x * WIDTH - 70)  # Смещение на половину ширины ракетки
+            # Ограничиваем движение ракетки по горизонтали
+            paddle_pos[0] = max(0, min(paddle_pos[0], WIDTH - 140))
 
     # --- Рендер ---
-    draw_scene()
+    if game_state == MENU:
+        draw_menu()
+    else:
+        draw_scene()
+
     pygame.display.set_caption(f"Table Tennis Wall - FPS: {clock.get_fps():.2f}")
     pygame.display.flip()
     clock.tick(60)
 
+# --- Очистка ---
+tracker.stop_capture()
 pygame.quit()
