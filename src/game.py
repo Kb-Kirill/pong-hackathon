@@ -287,12 +287,6 @@ while running:
         if paddle_collision_cooldown > 0:
             paddle_collision_cooldown -= 1
 
-        # Отскок от боковых границ стола
-        table_left = WIDTH // 2 - table_bottom_width // 2
-        table_right = WIDTH // 2 + table_bottom_width // 2
-        if ball_pos[0] <= table_left or ball_pos[0] >= table_right:
-            ball_velocity[0] = -ball_velocity[0] * 0.9  # Затухание
-
         # Отскок от верхней границы (стенка)
         if ball_pos[1] <= table_top_y:
             if abs(ball_velocity[1]) < 3:  # Если скорость слишком мала
