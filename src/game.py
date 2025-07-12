@@ -47,7 +47,6 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 bg_music_path = os.path.join(script_dir, "..", "assets", "sound", "1.mp3")
 pygame.mixer.music.load(bg_music_path)
 pygame.mixer.music.set_volume(0.4)
-pygame.mixer.music.play(-1)  # Зацикливаем
 
 # --- Звук удара (2.mp3) ---
 hit_sound_path = os.path.join(script_dir, "..", "assets", "sound", "2.mp3")
@@ -63,6 +62,16 @@ hit_lose.set_volume(0.4)             # при желании
 hit_win_path = os.path.join(script_dir, "..", "assets", "sound", "4.mp3")
 hit_win = pygame.mixer.Sound(hit_win_path)
 hit_win.set_volume(0.4)             # при желании
+
+# --- Звук поражения 11w.mp3) ---
+win_path = os.path.join(script_dir, "..", "assets", "sound", "11w.mp3")
+win = pygame.mixer.Sound(win_path)
+win.set_volume(0.4)             # при желании
+
+# --- Звук поражения (11l.mp3) ---
+lose_path = os.path.join(script_dir, "..", "assets", "sound", "11l.mp3")
+lose = pygame.mixer.Sound(lose_path)
+lose.set_volume(0.4)             # при желании
 
 boss_flip_state = 0  # Состояние отзеркаливания: 0 (обычное), 1 (отзеркаленное)
 boss_rotation_timer = 0  # Таймер для анимации отзеркаливания
@@ -137,10 +146,14 @@ def draw_menu():
         win_text = font_menu.render("ПОБЕДА!", True, WIN_COLOR)
         win_rect = win_text.get_rect(center=(WIDTH // 2, HEIGHT // 2 - 100))
         screen.blit(win_text, win_rect)
+        pygame.mixer.music.stop()
+        win.play()
     elif opponent_score >= 11:
         lose_text = font_menu.render("ПОРАЖЕНИЕ", True, LOSE_COLOR)
         lose_rect = lose_text.get_rect(center=(WIDTH // 2, HEIGHT // 2 - 100))
         screen.blit(lose_text, lose_rect)
+        pygame.mixer.music.stop()
+        lose.play()
 
 def draw_scene(frame_surface=None):
     screen.blit(background_image, (0, 0))
@@ -288,6 +301,7 @@ while running:
                     boss_x = WIDTH // 2 - 132 // 2  # Сбрасываем позицию босса
             elif game_state == GAME:
                 # Кнопки в игре
+                pygame.mixer.music.play()
                 menu_button_rect, restart_button_rect = draw_scene()
                 if menu_button_rect.collidepoint(mouse_pos):
                     game_state = MENU  # Возврат в меню
