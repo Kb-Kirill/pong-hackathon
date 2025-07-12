@@ -3,6 +3,10 @@ import pygame
 import os
 from hand_tracker import HandTracker
 import random
+import math
+import time
+
+random.seed(time.time())
 
 # --- Настройки экрана ---
 WIDTH, HEIGHT = 1200, 800
@@ -17,6 +21,10 @@ BUTTON_HOVER_COLOR = (45, 62, 71)  # Серый при наведении
 BUTTON_TEXT_COLOR = (255, 255, 255)  # Белый текст на кнопках
 SCORE_COLOR = (255, 255, 255)  # Белый для счёта
 SHADOW_COLOR = (100, 100, 100)  # Серый для тени мяча
+# В начале файла, где объявлены другие константы, добавьте:
+MIN_BALL_ANGLE = math.pi / 6  # 20 градусов (минимальный угол от горизонтали)
+MAX_BALL_ANGLE = math.pi / 3  # 70 градусов (максимальный угол от горизонтали)
+
 
 # --- Инициализация pygame ---
 pygame.init()
@@ -227,7 +235,13 @@ while running:
                     player_score = 0  # Сбрасываем счёт игрока
                     opponent_score = 0  # Сбрасываем счёт противника
                     ball_pos = [WIDTH // 2, HEIGHT // 3]  # Сброс позиции мяча
-                    ball_velocity = [random.choice([-5, 5]), 5]  # Сброс скорости
+                    reset_angle = random.uniform(MIN_BALL_ANGLE, MAX_BALL_ANGLE)  # Случайный угол в диапазоне
+                    speed = random.uniform(6, 8)  # Случайная скорость
+                    # Начальная скорость мяча
+                    ball_velocity = [
+                        speed * math.cos(reset_angle) * random.choice([-1, 1]),
+                        speed * math.sin(reset_angle) 
+                    ]
             elif game_state == GAME:
                 # Кнопки в игре
                 menu_button_rect, restart_button_rect = draw_scene()
@@ -238,13 +252,7 @@ while running:
                     opponent_score = 0  # Сброс счёта противника
                     ball_pos = [WIDTH // 2, HEIGHT // 3]  # Сброс позиции мяча
                     paddle_pos = [WIDTH // 2 - 70, HEIGHT - 140]  # Сброс позиции ракетки
-<<<<<<< HEAD
-                    ball_velocity = [random.choice([-5, 5]), 5]  # Сброс скорости
-=======
                     ball_velocity = [random.choice([-5, 5]), 5] # При сбросе мяча добавьте случайность:
-        print(f"Ball velocity: {ball_velocity}")
-
->>>>>>> b63fbac (Фикс многократного посдчета очков и дрожания шарика возле ракетки)
 
     # --- Обновление состояния ---
     if game_state == GAME:
@@ -296,22 +304,19 @@ while running:
         if ball_pos[1] >= table_bottom_y:
             opponent_score += 1
             ball_pos = [WIDTH // 2, HEIGHT // 3]  # Сброс позиции
-<<<<<<< HEAD
-            ball_velocity = [random.choice([-5, 5]), 5]  # Сброс скорости
-=======
-            ball_velocity = [random.choice([-5, 5]), 5]  # Сброс скорости, Случайный начальный угол
->>>>>>> b63fbac (Фикс многократного посдчета очков и дрожания шарика возле ракетки)
-
+            reset_angle = random.uniform(MIN_BALL_ANGLE, MAX_BALL_ANGLE)
+            speed = random.uniform(6, 8)  # Случайная скорость в диапазоне 6-8
+            ball_velocity = [
+                speed * math.cos(reset_angle) * random.choice([-1, 1]),  # Случайное направление по горизонтали
+                speed * math.sin(reset_angle)  # Всегда вверх (к противнику)
+            ]
+            random.seed(time.time() + random.random())
+            
         # Столкновение с ракеткой
         paddle_rect = pygame.Rect(paddle_pos[0], paddle_pos[1], 140, 140)
         collision_rect = paddle_rect.inflate(-paddle_rect.width // 2, -paddle_rect.height // 2)  # Сужаем зону
         ball_rect = pygame.Rect(ball_pos[0] - 12, ball_pos[1] - 12, 24, 24)
-<<<<<<< HEAD
         if collision_rect.colliderect(ball_rect) and paddle_collision_cooldown == 0:
-=======
-
-        if paddle_rect.colliderect(ball_rect) and paddle_collision_cooldown == 0:
->>>>>>> b63fbac (Фикс многократного посдчета очков и дрожания шарика возле ракетки)
             relative_x = (ball_pos[0] - (paddle_pos[0] + 70)) / 70
             ball_velocity[0] = relative_x * 12
             ball_velocity[1] = -abs(ball_velocity[1]) * 1.2  # Ускорение при ударе
