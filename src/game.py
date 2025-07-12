@@ -28,13 +28,25 @@ clock = pygame.time.Clock()
 font_menu = pygame.font.SysFont("arial", 48)
 font = pygame.font.SysFont("arial", 40)  # Шрифт для счёта и кнопок
 
-# --- Фоновая музыка ---
-script_dir = os.path.dirname(os.path.abspath(__file__))
-music_path = os.path.join(script_dir, "..", "assets", "sound", "1.mp3")
 pygame.mixer.init()
-pygame.mixer.music.load(music_path)
+
+script_dir = os.path.dirname(os.path.abspath(__file__))
+
+# --- Фоновая музыка ---
+bg_music_path = os.path.join(script_dir, "..", "assets", "sound", "1.mp3")
+pygame.mixer.music.load(bg_music_path)
 pygame.mixer.music.set_volume(0.4)
-pygame.mixer.music.play(-1)
+pygame.mixer.music.play(-1)           # зацикливаем
+
+# --- Звук удара (2.mp3) ---
+hit_sound_path = os.path.join(script_dir, "..", "assets", "sound", "2.mp3")
+hit_sound = pygame.mixer.Sound(hit_sound_path)
+hit_sound.set_volume(0.4)             # при желании
+
+# --- Звук поражения (2.mp3) ---
+hit_lose_path = os.path.join(script_dir, "..", "assets", "sound", "3.mp3")
+hit_lose = pygame.mixer.Sound(hit_lose_path)
+hit_lose.set_volume(0.4)             # при желании
 
 # --- Параметры стола (глобальные) ---
 table_top_width = WIDTH * 0.25  # Верхняя часть стола (узкая)
@@ -278,6 +290,7 @@ while running:
 
         # Отскок от верхней границы (стенка)
         if ball_pos[1] <= table_top_y:
+            hit_sound.play()
             if abs(ball_velocity[1]) < 3:  # Если скорость слишком мала
                 ball_velocity[1] = 8  # Устанавливаем достаточную скорость
             else:
@@ -286,6 +299,7 @@ while running:
         # Пропадание мяча за нижнюю границу
         if ball_pos[1] >= table_bottom_y:
             opponent_score += 1
+            hit_lose.play()
             ball_pos = [WIDTH // 2, HEIGHT // 3]  # Сброс позиции
             ball_velocity = [random.choice([-5, 5]), 5]  # Сброс скорости
 
@@ -294,6 +308,7 @@ while running:
         collision_rect = paddle_rect.inflate(-paddle_rect.width // 2, -paddle_rect.height // 2)  # Сужаем зону
         ball_rect = pygame.Rect(ball_pos[0] - 12, ball_pos[1] - 12, 24, 24)
         if collision_rect.colliderect(ball_rect) and paddle_collision_cooldown == 0:
+            hit_sound.play()
             relative_x = (ball_pos[0] - (paddle_pos[0] + 70)) / 70
             ball_velocity[0] = relative_x * 12
             ball_velocity[1] = -abs(ball_velocity[1]) * 1.2  # Ускорение при ударе
