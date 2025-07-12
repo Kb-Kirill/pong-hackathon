@@ -363,15 +363,29 @@ while running:
 
         # Отскок от верхней границы (стенка)
         if ball_pos[1] <= ball_top_y and wall_collision_cooldown == 0:
-            hit_sound.play()
-            if abs(ball_velocity[1]) < 3:  # Если скорость слишком мала
-                ball_velocity[1] = 8  # Устанавливаем достаточную скорость
+            boss_rect = pygame.Rect(boss_x, table_top_y - 200, 132, 200)
+            ball_rect = pygame.Rect(ball_pos[0] - 12, ball_pos[1] - 12, 24, 24)
+            if boss_rect.colliderect(ball_rect):
+                hit_sound.play()
+                if abs(ball_velocity[1]) < 3:  # Если скорость слишком мала
+                    ball_velocity[1] = 8  # Устанавливаем достаточную скорость
+                else:
+                    ball_velocity[1] = -ball_velocity[1] * 0.95
+                ball_direction = -1  # Направление вниз после отскока
+                boss_rotation_timer = 30  # ~0.5 сек при 60 FPS
+                boss_flip_state = 1  # Начинаем с отзеркаленного состояния
+                wall_collision_cooldown = 20  # ~0.33 сек при 60 FPS
             else:
-                ball_velocity[1] = -ball_velocity[1] * 0.95
-            ball_direction = -1  # Направление вниз после отскока
-            boss_rotation_timer = 30  # ~0.5 сек при 60 FPS
-            boss_flip_state = 1  # Начинаем с отзеркаленного состояния
-            wall_collision_cooldown = 20  # ~0.33 сек при 60 FPS
+                player_score += 1
+                ball_pos = [WIDTH // 2, ball_top_y + 100]  # Сброс позиции дальше от верхней границы
+                reset_angle = random.uniform(MIN_BALL_ANGLE, MAX_BALL_ANGLE)
+                speed = random.uniform(6, 8)
+                ball_velocity = [
+                    speed * math.cos(reset_angle) * random.choice([-1, 1]),
+                    speed * math.sin(reset_angle)
+                ]
+                ball_direction = 1  # Сброс направления (вверх)
+                random.seed(time.time() + random.random())
 
         # Пропадание мяча за нижнюю границу
         if ball_pos[1] >= table_bottom_y:
