@@ -26,10 +26,18 @@ clock = pygame.time.Clock()
 font_menu = pygame.font.SysFont("arial", 48)
 font = pygame.font.SysFont("arial", 40)  # Шрифт для счёта и кнопок
 
+# --- Параметры стола (глобальные) ---
+table_top_width = WIDTH * 0.25  # Верхняя часть стола (узкая)
+table_bottom_width = WIDTH * 0.6  # Нижняя часть стола
+table_top_y = 250
+table_bottom_y = HEIGHT - int(0.2 * HEIGHT)
+
 # --- Начальные позиции и состояние ---
 ball_pos = [WIDTH // 2, HEIGHT // 3]
+ball_velocity = [5, 5]  # Начальная скорость мяча
 paddle_pos = [WIDTH // 2 - 70, HEIGHT - 140]  # x, y (смещено для центрирования ракетки)
-score = 0  # Начальный счёт
+player_score = 0  # Счёт игрока
+opponent_score = 0  # Счёт стенки/противника
 
 # --- Загрузка изображения ракетки ---
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -69,12 +77,6 @@ def draw_scene(frame_surface=None):
         camera_rect = pygame.Rect(WIDTH - 330, 10, 320, 240)  # 10 пикселей отступа от краев
         screen.blit(frame_surface, camera_rect)
 
-    # Параметры для перспективы
-    table_top_width = WIDTH * 0.25  # Верхняя часть стола (узкая)
-    table_bottom_width = WIDTH * 0.6  # Нижняя часть стола (уменьшено с 0.9 до 0.6)
-    table_top_y = 250
-    table_bottom_y = HEIGHT - int(0.2 * HEIGHT)
-
     # Левая половина стола
     left_table_points = [
         (WIDTH // 2, table_top_y),
@@ -97,12 +99,12 @@ def draw_scene(frame_surface=None):
     pygame.draw.line(screen, NET_COLOR, (WIDTH // 2, table_top_y), (WIDTH // 2, table_bottom_y), 3)
 
     # --- Сетка ---
-    # Смещаем сетку выше (на 30% от верхней части стола)
+    # Смещаем сетку выше (на 38% от верхней части стола)
     net_y = table_top_y + int((table_bottom_y - table_top_y) * 0.38)
     # Рассчитываем ширину сетки, чтобы она соответствовала ширине стола на уровне net_y
     net_width = (table_top_width + (table_bottom_width - table_top_width) * (
             (net_y - table_top_y) / (table_bottom_y - table_top_y)
-    )) * 1.07  # Увеличиваем ширину на 20%
+    )) * 1.07  # Увеличиваем ширину на 7%
     net_half_width = net_width // 2
 
     # Квадраты сетки (имитация ячеек) на всю ширину
@@ -117,7 +119,7 @@ def draw_scene(frame_surface=None):
     screen.blit(paddle_image, paddle_pos)
 
     # --- Счёт ---
-    score_text = font.render(str(score), True, SCORE_COLOR)
+    score_text = font.render(f"{player_score}:{opponent_score}", True, SCORE_COLOR)
     score_rect = score_text.get_rect(center=(WIDTH // 2, 50))
     screen.blit(score_text, score_rect)
 
@@ -159,16 +161,21 @@ while running:
                 button_rect = pygame.Rect(WIDTH // 2 - 100, HEIGHT // 2 - 50, 200, 100)
                 if button_rect.collidepoint(mouse_pos):
                     game_state = GAME
-                    score = 0  # Сбрасываем счёт при начале игры
+                    player_score = 0  # Сбрасываем счёт игрока
+                    opponent_score = 0  # Сбрасываем счёт противника
+                    ball_pos = [WIDTH // 2, HEIGHT // 3]  # Сброс позиции мяча
+                    ball_velocity = [5, 5]  # Сброс скорости
             elif game_state == GAME:
                 # Кнопки в игре
                 menu_button_rect, restart_button_rect = draw_scene()
                 if menu_button_rect.collidepoint(mouse_pos):
                     game_state = MENU  # Возврат в меню
                 elif restart_button_rect.collidepoint(mouse_pos):
-                    score = 0  # Сброс счёта
+                    player_score = 0  # Сброс счёта игрока
+                    opponent_score = 0  # Сброс счёта противника
                     ball_pos = [WIDTH // 2, HEIGHT // 3]  # Сброс позиции мяча
                     paddle_pos = [WIDTH // 2 - 70, HEIGHT - 140]  # Сброс позиции ракетки
+                    ball_velocity = [5, 5]  # Сброс скорости
 
     # --- Обновление состояния ---
     if game_state == GAME:
@@ -189,11 +196,38 @@ while running:
             paddle_pos[0] = int(x * WIDTH - 70)  # Смещение на половину ширины ракетки
             paddle_pos[1] = int(y * HEIGHT - 70)
             if 350 <= paddle_pos[1] <= 650:
-                 paddle_image.set_alpha(255)
+                paddle_image.set_alpha(255)
             else:
-                 paddle_image.set_alpha(128)
+                paddle_image.set_alpha(128)
             # Ограничиваем движение ракетки по горизонтали
             paddle_pos[0] = max(0, min(paddle_pos[0], WIDTH - 140))
+
+        # Обновление физики мяча
+        ball_pos[0] += ball_velocity[0]
+        ball_pos[1] += ball_velocity[1]
+
+        # Отскок от боковых границ стола
+        table_left = WIDTH // 2 - table_bottom_width // 2
+        table_right = WIDTH // 2 + table_bottom_width // 2
+        if ball_pos[0] <= table_left or ball_pos[0] >= table_right:
+            ball_velocity[0] = -ball_velocity[0] * 0.9  # Затухание
+
+        # Отскок от верхней границы (стенка)
+        if ball_pos[1] <= table_top_y:
+            ball_velocity[1] = -ball_velocity[1] * 0.9  # Затухание
+
+        # Пропадание мяча за нижнюю границу (очко для стенки)
+        if ball_pos[1] >= table_bottom_y:
+            opponent_score += 1
+            ball_pos = [WIDTH // 2, HEIGHT // 3]  # Сброс позиции
+            ball_velocity = [5, 5]  # Сброс скорости
+
+        # Столкновение с ракеткой
+        paddle_rect = pygame.Rect(paddle_pos[0], paddle_pos[1], 140, 140)
+        ball_rect = pygame.Rect(ball_pos[0] - 12, ball_pos[1] - 12, 24, 24)
+        if paddle_rect.colliderect(ball_rect):
+            ball_velocity[1] = -ball_velocity[1] * 1.1  # Ускорение при ударе
+            player_score += 1  # Очко игроку
 
     # --- Рендер ---
     if game_state == MENU:
