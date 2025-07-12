@@ -46,7 +46,6 @@ MENU = "menu"
 GAME = "game"
 game_state = MENU
 
-
 def draw_menu():
     screen.fill(BG_COLOR)
     # Кнопка "Начать"
@@ -62,7 +61,6 @@ def draw_menu():
     text_rect = text.get_rect(center=button_rect.center)
     screen.blit(text, text_rect)
 
-
 def draw_scene(frame_surface=None):
     screen.fill(BG_COLOR)
 
@@ -72,8 +70,8 @@ def draw_scene(frame_surface=None):
         screen.blit(frame_surface, camera_rect)
 
     # Параметры для перспективы
-    table_top_width = WIDTH * 0.2
-    table_bottom_width = WIDTH * 0.9
+    table_top_width = WIDTH * 0.25  # Верхняя часть стола (узкая)
+    table_bottom_width = WIDTH * 0.6  # Нижняя часть стола (уменьшено с 0.9 до 0.6)
     table_top_y = 250
     table_bottom_y = HEIGHT - int(0.2 * HEIGHT)
 
@@ -100,11 +98,11 @@ def draw_scene(frame_surface=None):
 
     # --- Сетка ---
     # Смещаем сетку выше (на 30% от верхней части стола)
-    net_y = table_top_y + int((table_bottom_y - table_top_y) * 0.3)
+    net_y = table_top_y + int((table_bottom_y - table_top_y) * 0.38)
     # Рассчитываем ширину сетки, чтобы она соответствовала ширине стола на уровне net_y
     net_width = (table_top_width + (table_bottom_width - table_top_width) * (
             (net_y - table_top_y) / (table_bottom_y - table_top_y)
-    )) * 1.2  # Увеличиваем ширину на 20%
+    )) * 1.07  # Увеличиваем ширину на 20%
     net_half_width = net_width // 2
 
     # Квадраты сетки (имитация ячеек) на всю ширину
@@ -147,7 +145,6 @@ def draw_scene(frame_surface=None):
 
     return menu_button_rect, restart_button_rect
 
-
 # --- Главный игровой цикл ---
 running = True
 while running:
@@ -175,7 +172,6 @@ while running:
 
     # --- Обновление состояния ---
     if game_state == GAME:
-
         # Получаем координаты руки и кадр
         frame, coords = tracker.process_frame(draw_point=True)  # Включаем точку для отображения на камере
         if frame is not None:
