@@ -2,6 +2,7 @@ import cv2
 import pygame
 import os
 from hand_tracker import HandTracker
+import random
 
 # --- Настройки экрана ---
 WIDTH, HEIGHT = 1200, 800
@@ -66,6 +67,9 @@ ball_image = pygame.transform.scale(ball_image, (50, 50))  # под размер
 # --- Инициализация HandTracker ---
 tracker = HandTracker(max_num_hands=1)
 tracker.start_capture()
+
+# В начале файла, где объявляются переменные, добавьте:
+paddle_collision_cooldown = 0  # Таймер для задержки между столкновениями
 
 # --- Состояния игры ---
 MENU = "menu"
@@ -195,7 +199,9 @@ while running:
                     opponent_score = 0  # Сброс счёта противника
                     ball_pos = [WIDTH // 2, HEIGHT // 3]  # Сброс позиции мяча
                     paddle_pos = [WIDTH // 2 - 70, HEIGHT - 140]  # Сброс позиции ракетки
-                    ball_velocity = [5, 5]  # Сброс скорости
+                    ball_velocity = [random.choice([-5, 5]), 5] # При сбросе мяча добавьте случайность:
+        print(f"Ball velocity: {ball_velocity}")
+
 
     # --- Обновление состояния ---
     if game_state == GAME:
@@ -226,6 +232,10 @@ while running:
         ball_pos[0] += ball_velocity[0]
         ball_pos[1] += ball_velocity[1]
 
+        # Уменьшаем таймер кулдауна
+        if paddle_collision_cooldown > 0:
+            paddle_collision_cooldown -= 1
+
         # Отскок от боковых границ стола
         table_left = WIDTH // 2 - table_bottom_width // 2
         table_right = WIDTH // 2 + table_bottom_width // 2
@@ -234,25 +244,28 @@ while running:
 
         # Отскок от верхней границы (стенка)
         if ball_pos[1] <= table_top_y:
-            # Добавляем минимальную скорость после отскока
             if abs(ball_velocity[1]) < 3:  # Если скорость слишком мала
                 ball_velocity[1] = 8  # Устанавливаем достаточную скорость
             else:
                 ball_velocity[1] = -ball_velocity[1] * 0.95  # Меньшее затухание
 
-        # Пропадание мяча за нижнюю границу (очко для стенки)
+        # Пропадание мяча за нижнюю границу
         if ball_pos[1] >= table_bottom_y:
             opponent_score += 1
             ball_pos = [WIDTH // 2, HEIGHT // 3]  # Сброс позиции
-            ball_velocity = [5, 5]  # Сброс скорости
+            ball_velocity = [random.choice([-5, 5]), 5]  # Сброс скорости, Случайный начальный угол
 
         # Столкновение с ракеткой
         paddle_rect = pygame.Rect(paddle_pos[0], paddle_pos[1], 140, 140)
         collision_rect = paddle_rect.inflate(-paddle_rect.width // 2, -paddle_rect.height // 2)  # новая, сужаем зону
         ball_rect = pygame.Rect(ball_pos[0] - 12, ball_pos[1] - 12, 24, 24)
-        if collision_rect.colliderect(ball_rect):  # было paddle_rect.colliderect(...)
-        	ball_velocity[1] *= -1.1
-        	player_score += 1
+
+        if paddle_rect.colliderect(ball_rect) and paddle_collision_cooldown == 0:
+            relative_x = (ball_pos[0] - (paddle_pos[0] + 70)) / 70
+            ball_velocity[0] = relative_x * 12
+            ball_velocity[1] = -abs(ball_velocity[1]) * 1.2  # Ускорение при ударе
+            player_score += 1
+            paddle_collision_cooldown = 20  # ~0.33 сек при 60 FPS
 
     # --- Рендер ---
     if game_state == MENU:
