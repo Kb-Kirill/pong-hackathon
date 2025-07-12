@@ -26,6 +26,14 @@ clock = pygame.time.Clock()
 font_menu = pygame.font.SysFont("arial", 48)
 font = pygame.font.SysFont("arial", 40)  # Шрифт для счёта и кнопок
 
+# --- Фоновая музыка ---
+script_dir = os.path.dirname(os.path.abspath(__file__))
+music_path = os.path.join(script_dir, "..", "assets", "sound", "1.mp3")
+pygame.mixer.init()
+pygame.mixer.music.load(music_path)
+pygame.mixer.music.set_volume(0.4)
+pygame.mixer.music.play(-1)
+
 # --- Параметры стола (глобальные) ---
 table_top_width = WIDTH * 0.25  # Верхняя часть стола (узкая)
 table_bottom_width = WIDTH * 0.6  # Нижняя часть стола
