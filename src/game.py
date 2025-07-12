@@ -357,10 +357,6 @@ while running:
         if paddle_collision_cooldown > 0:
             paddle_collision_cooldown -= 1
 
-        # Уменьшаем таймер кулдауна для стены
-        if wall_collision_cooldown > 0:
-            wall_collision_cooldown -= 1
-
         # Отскок от верхней границы (стенка)
         if ball_pos[1] <= ball_top_y and wall_collision_cooldown == 0:
             hit_sound.play()
