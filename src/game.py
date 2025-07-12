@@ -24,6 +24,7 @@ SHADOW_COLOR = (100, 100, 100)  # Серый для тени мяча
 # В начале файла, где объявлены другие константы, добавьте:
 MIN_BALL_ANGLE = math.pi / 6  # 20 градусов (минимальный угол от горизонтали)
 MAX_BALL_ANGLE = math.pi / 3  # 70 градусов (максимальный угол от горизонтали)
+ball_top_y = 175  # Верхняя граница полёта мяча (выше стола)
 
 
 # --- Инициализация pygame ---
@@ -57,6 +58,7 @@ paddle_pos = [WIDTH // 2 - 70, HEIGHT - 140]  # x, y (смещено для це
 player_score = 0  # Счёт игрока
 opponent_score = 0  # Счёт стенки/противника
 paddle_collision_cooldown = 0  # Таймер для задержки между столкновениями
+wall_collision_cooldown = 0  # Таймер для задержки отскока от верхней границы
 
 # --- Загрузка изображения ракетки ---
 paddle_image_path = os.path.join(script_dir, "..", "assets", "image", "paddle.png")
@@ -76,6 +78,7 @@ ball_image = pygame.transform.scale(ball_image, (50, 50))  # Под размер
 background_image_path = os.path.join(script_dir, "..", "assets", "image", "background.jpg")
 background_image = pygame.image.load(background_image_path).convert()
 background_image = pygame.transform.scale(background_image, (WIDTH, HEIGHT))
+
 
 
 # --- Инициализация HandTracker ---
@@ -287,22 +290,27 @@ while running:
         if paddle_collision_cooldown > 0:
             paddle_collision_cooldown -= 1
 
+        # Уменьшаем таймер кулдауна для стены
+        if wall_collision_cooldown > 0:
+            wall_collision_cooldown -= 1
+
         # Отскок от верхней границы (стенка)
-        if ball_pos[1] <= table_top_y:
+        if ball_pos[1] <= ball_top_y and wall_collision_cooldown == 0:
             if abs(ball_velocity[1]) < 3:  # Если скорость слишком мала
                 ball_velocity[1] = 8  # Устанавливаем достаточную скорость
             else:
                 ball_velocity[1] = -ball_velocity[1] * 0.95  # Меньшее затухание
+            wall_collision_cooldown = 20  # ~0.33 сек при 60 FPS
 
         # Пропадание мяча за нижнюю границу
         if ball_pos[1] >= table_bottom_y:
             opponent_score += 1
-            ball_pos = [WIDTH // 2, HEIGHT // 3]  # Сброс позиции
+            ball_pos = [WIDTH // 2, ball_top_y + 100]  # Сброс позиции дальше от верхней границы
             reset_angle = random.uniform(MIN_BALL_ANGLE, MAX_BALL_ANGLE)
             speed = random.uniform(6, 8)  # Случайная скорость в диапазоне 6-8
             ball_velocity = [
                 speed * math.cos(reset_angle) * random.choice([-1, 1]),  # Случайное направление по горизонтали
-                speed * math.sin(reset_angle)  # Всегда вверх (к противнику)
+                speed * math.sin(reset_angle)  # Всегда вниз (к игроку)
             ]
             random.seed(time.time() + random.random())
             
