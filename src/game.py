@@ -377,6 +377,7 @@ while running:
                 wall_collision_cooldown = 20  # ~0.33 сек при 60 FPS
             else:
                 player_score += 1
+                hit_win.play()
                 ball_pos = [WIDTH // 2, ball_top_y + 100]  # Сброс позиции дальше от верхней границы
                 reset_angle = random.uniform(MIN_BALL_ANGLE, MAX_BALL_ANGLE)
                 speed = random.uniform(6, 8)
@@ -410,7 +411,6 @@ while running:
             relative_x = (ball_pos[0] - (paddle_pos[0] + 70)) / 70
             ball_velocity[0] = relative_x * 12
             ball_velocity[1] = -abs(ball_velocity[1]) * 1.2
-            hit_win.play()
             # player_score += 1
             paddle_collision_cooldown = 20
             ball_direction = 1  # Направление вверх после удара
