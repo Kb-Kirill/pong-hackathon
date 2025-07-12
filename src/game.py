@@ -224,10 +224,11 @@ while running:
 
         # Столкновение с ракеткой
         paddle_rect = pygame.Rect(paddle_pos[0], paddle_pos[1], 140, 140)
+        collision_rect = paddle_rect.inflate(-paddle_rect.width // 2, -paddle_rect.height // 2)  # новая, сужаем зону
         ball_rect = pygame.Rect(ball_pos[0] - 12, ball_pos[1] - 12, 24, 24)
-        if paddle_rect.colliderect(ball_rect):
-            ball_velocity[1] = -ball_velocity[1] * 1.1  # Ускорение при ударе
-            player_score += 1  # Очко игроку
+        if collision_rect.colliderect(ball_rect):  # было paddle_rect.colliderect(...)
+        	ball_velocity[1] *= -1.1
+        	player_score += 1
 
     # --- Рендер ---
     if game_state == MENU:
