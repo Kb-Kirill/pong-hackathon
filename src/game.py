@@ -282,6 +282,10 @@ while running:
 
     # --- Обновление состояния ---
     if game_state == GAME:
+        if player_score >= 11 or opponent_score >= 11:
+            hit_sound.stop()
+            hit_lose.stop()
+            game_state = MENU
         # Получаем координаты руки и кадр
         frame, coords = tracker.process_frame(draw_point=True)
         if frame is not None:
