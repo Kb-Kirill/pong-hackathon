@@ -9,7 +9,7 @@ WIDTH, HEIGHT = 1200, 800
 
 # --- Цвета ---
 BG_COLOR = (30, 30, 30)
-TABLE_COLOR = (70, 130, 180)  # Сине-голубой цвет стола
+TABLE_COLOR = (1, 101, 163)  # Сине-голубой цвет стола
 NET_COLOR = (255, 255, 255)
 BALL_COLOR = (255, 255, 0)
 BUTTON_COLOR = (100, 100, 100)  # Серый для кнопок
@@ -64,6 +64,12 @@ ball_image_path = os.path.join(script_dir, "..", "assets", "image", "ball.png")
 ball_image = pygame.image.load(ball_image_path).convert_alpha()
 ball_image = pygame.transform.scale(ball_image, (50, 50))  # Под размер как был круг
 
+# --- Загрузка фонового изображения для всего окна ---
+background_image_path = os.path.join(script_dir, "..", "assets", "image", "background.jpg")
+background_image = pygame.image.load(background_image_path).convert()
+background_image = pygame.transform.scale(background_image, (WIDTH, HEIGHT))
+
+
 # --- Инициализация HandTracker ---
 tracker = HandTracker(max_num_hands=1)
 tracker.start_capture()
@@ -89,7 +95,7 @@ def draw_menu():
     screen.blit(text, text_rect)
 
 def draw_scene(frame_surface=None):
-    screen.fill(BG_COLOR)
+    screen.blit(background_image, (0, 0))
 
     # Окно камеры
     if frame_surface:
@@ -116,6 +122,23 @@ def draw_scene(frame_surface=None):
 
     # Центральная линия
     pygame.draw.line(screen, NET_COLOR, (WIDTH // 2, table_top_y), (WIDTH // 2, table_bottom_y), 3)
+
+    # --- Ножки стола ---
+    leg_width = 20
+    leg_color = (50, 50, 50)  # Тёмно-серый цвет ножек
+
+    # Левая ножка
+    left_leg_x = WIDTH // 2 - table_bottom_width // 2 + 100  # немного внутрь
+    left_leg_y = table_bottom_y
+    left_leg_height = HEIGHT - table_bottom_y
+    pygame.draw.rect(screen, leg_color, (left_leg_x, left_leg_y, leg_width, left_leg_height))
+
+    # Правая ножка
+    right_leg_x = WIDTH // 2 + table_bottom_width // 2 - leg_width - 100  # немного внутрь
+    right_leg_y = table_bottom_y
+    right_leg_height = HEIGHT - table_bottom_y
+    pygame.draw.rect(screen, leg_color, (right_leg_x, right_leg_y, leg_width, right_leg_height))
+
 
     # --- Второй игрок (boss) ---
     boss_width = 132
