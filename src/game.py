@@ -121,7 +121,7 @@ game_state = MENU
 def draw_menu():
     screen.blit(load_image, (0, 0))
     # Кнопка "Начать"
-    button_rect = pygame.Rect(WIDTH // 2 - 100, HEIGHT // 2 - 50, 200, 100)
+    button_rect = pygame.Rect(WIDTH // 2 - 100, HEIGHT // 2, 200, 100)
     mouse_pos = pygame.mouse.get_pos()
     if button_rect.collidepoint(mouse_pos):
         pygame.draw.rect(screen, BUTTON_HOVER_COLOR, button_rect)
