@@ -57,6 +57,9 @@ hit_lose_path = os.path.join(script_dir, "..", "assets", "sound", "3.mp3")
 hit_lose = pygame.mixer.Sound(hit_lose_path)
 hit_lose.set_volume(0.4)             # при желании
 
+boss_flip_state = 0  # Состояние отзеркаливания: 0 (обычное), 1 (отзеркаленное)
+boss_rotation_timer = 0  # Таймер для анимации отзеркаливания
+
 # --- Параметры стола (глобальные) ---
 table_top_width = WIDTH * 0.25  # Верхняя часть стола (узкая)
 table_bottom_width = WIDTH * 0.6  # Нижняя часть стола
@@ -172,7 +175,11 @@ def draw_scene(frame_surface=None):
     boss_x = WIDTH // 2 - boss_width // 2
     boss_y = table_top_y - boss_height
     boss_image_scaled = pygame.transform.scale(table_bg_image, (boss_width, boss_height))
-    screen.blit(boss_image_scaled, (boss_x, boss_y))
+    if boss_rotation_timer > 0:
+        flipped_boss = pygame.transform.flip(boss_image_scaled, boss_flip_state == 1, False)
+        screen.blit(flipped_boss, (boss_x, boss_y))
+    else:
+        screen.blit(boss_image_scaled, (boss_x, boss_y))
 
     # --- Сетка ---
     net_y = table_top_y + int((table_bottom_y - table_top_y) * 0.38)
@@ -326,9 +333,11 @@ while running:
             if abs(ball_velocity[1]) < 3:  # Если скорость слишком мала
                 ball_velocity[1] = 8  # Устанавливаем достаточную скорость
             else:
-                ball_velocity[1] = -ball_velocity[1] * 0.95  # Меньшее затухание
+                ball_velocity[1] = -ball_velocity[1] * 0.95
+            ball_direction = -1  # Направление вниз после отскока
+            boss_rotation_timer = 30  # ~0.5 сек при 60 FPS
+            boss_flip_state = 1  # Начинаем с отзеркаленного состояния
             wall_collision_cooldown = 20  # ~0.33 сек при 60 FPS
-            ball_direction = -1
 
             # Пропадание мяча за нижнюю границу
         if ball_pos[1] >= table_bottom_y:
@@ -356,6 +365,14 @@ while running:
             player_score += 1
             paddle_collision_cooldown = 20
             ball_direction = 1  # Направление вверх после удара
+
+        # Обновление анимации отзеркаливания оппонента
+        if boss_rotation_timer > 0:
+            if boss_rotation_timer % 10 == 0:
+                boss_flip_state = 1 - boss_flip_state  # Чередуем 0 и 1
+            boss_rotation_timer -= 1
+            if boss_rotation_timer == 0:
+                boss_flip_state = 0  # Возвращаем обычное состояние
 
     # --- Рендер ---
     if game_state == MENU:
