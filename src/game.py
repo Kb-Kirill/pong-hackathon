@@ -374,7 +374,7 @@ while running:
         paddle_rect = pygame.Rect(paddle_pos[0], paddle_pos[1], 140, 140)
         collision_rect = paddle_rect.inflate(-paddle_rect.width // 2, -paddle_rect.height // 2)
         ball_rect = pygame.Rect(ball_pos[0] - 12, ball_pos[1] - 12, 24, 24)
-        if collision_rect.colliderect(ball_rect) and paddle_collision_cooldown == 0:
+        if collision_rect.colliderect(ball_rect) and paddle_collision_cooldown == 0 and paddle_image.get_alpha() == 255:
             hit_sound.play()
             relative_x = (ball_pos[0] - (paddle_pos[0] + 70)) / 70
             ball_velocity[0] = relative_x * 12
