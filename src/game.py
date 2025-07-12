@@ -65,6 +65,7 @@ table_bottom_y = HEIGHT - int(0.2 * HEIGHT)
 # --- Начальные позиции и состояние ---
 ball_pos = [WIDTH // 2, HEIGHT // 3]
 ball_velocity = [5, 5]  # Начальная скорость мяча
+ball_direction = 1  # 1: к противнику (вверх), -1: к игроку (вниз)
 paddle_pos = [WIDTH // 2 - 70, HEIGHT - 140]  # x, y (смещено для центрирования ракетки)
 player_score = 0  # Счёт игрока
 opponent_score = 0  # Счёт стенки/противника
@@ -82,20 +83,16 @@ table_bg_image = pygame.image.load(table_bg_image_path).convert_alpha()
 # --- Загрузка изображения мяча ---
 ball_image_path = os.path.join(script_dir, "..", "assets", "image", "ball.png")
 ball_image = pygame.image.load(ball_image_path).convert_alpha()
-ball_image = pygame.transform.scale(ball_image, (50, 50))  # Под размер как был круг
+ball_image = pygame.transform.scale(ball_image, (50, 50))  # Базовый размер мяча
 
 # --- Загрузка фонового изображения для всего окна ---
 background_image_path = os.path.join(script_dir, "..", "assets", "image", "background.jpg")
 background_image = pygame.image.load(background_image_path).convert()
 background_image = pygame.transform.scale(background_image, (WIDTH, HEIGHT))
 
-
 # --- Инициализация HandTracker ---
 tracker = HandTracker(max_num_hands=1)
 tracker.start_capture()
-
-# В начале файла, где объявляются переменные, добавьте:
-paddle_collision_cooldown = 0  # Таймер для задержки между столкновениями
 
 # --- Состояния игры ---
 MENU = "menu"
@@ -103,7 +100,7 @@ GAME = "game"
 game_state = MENU
 
 def draw_menu():
-    screen.fill(BG_COLOR)
+    screen.blit(background_image, (0, 0))
     # Кнопка "Начать"
     button_rect = pygame.Rect(WIDTH // 2 - 100, HEIGHT // 2 - 50, 200, 100)
     mouse_pos = pygame.mouse.get_pos()
@@ -149,19 +146,16 @@ def draw_scene(frame_surface=None):
     # --- Ножки стола ---
     leg_width = 20
     leg_color = (50, 50, 50)  # Тёмно-серый цвет ножек
-
     # Левая ножка
-    left_leg_x = WIDTH // 2 - table_bottom_width // 2 + 100  # немного внутрь
+    left_leg_x = WIDTH // 2 - table_bottom_width // 2 + 100
     left_leg_y = table_bottom_y
     left_leg_height = HEIGHT - table_bottom_y
     pygame.draw.rect(screen, leg_color, (left_leg_x, left_leg_y, leg_width, left_leg_height))
-
     # Правая ножка
-    right_leg_x = WIDTH // 2 + table_bottom_width // 2 - leg_width - 100  # немного внутрь
+    right_leg_x = WIDTH // 2 + table_bottom_width // 2 - leg_width - 100
     right_leg_y = table_bottom_y
     right_leg_height = HEIGHT - table_bottom_y
     pygame.draw.rect(screen, leg_color, (right_leg_x, right_leg_y, leg_width, right_leg_height))
-
 
     # --- Второй игрок (boss) ---
     boss_width = 132
@@ -181,8 +175,10 @@ def draw_scene(frame_surface=None):
             pygame.draw.rect(screen, NET_COLOR, (WIDTH // 2 + x, y, 2, 2))
 
     # --- Тень мяча ---
-    # Условная высота Z: 0 у table_bottom_y, 1 у table_top_y
-    z = (table_bottom_y - ball_pos[1]) / (table_bottom_y - table_top_y)
+    # Параболическая интерполяция для Z: максимум у net_y, минимум у table_top_y и table_bottom_y
+    distance_from_net = abs(ball_pos[1] - net_y)
+    max_distance = max(net_y - table_top_y, table_bottom_y - net_y)
+    z = 1 - (distance_from_net / max_distance) ** 2
     z = max(0, min(1, z))  # Ограничиваем Z в [0, 1]
     # Размер тени: от 30x20 (Z=0) до 15x10 (Z=1)
     shadow_width = int(30 - 15 * z)
@@ -192,27 +188,31 @@ def draw_scene(frame_surface=None):
     # Прозрачность тени: от 180 (Z=0) до 40 (Z=1)
     shadow_alpha = int(180 - 140 * z)
     # Создаём поверхность для тени
-    shadow_surface = pygame.Surface((shadow_width, shadow_height), pygame.SRCALPHA)
-    pygame.draw.ellipse(shadow_surface, (*SHADOW_COLOR, shadow_alpha), (0, 0, shadow_width, shadow_height))
-    shadow_pos = (ball_pos[0] - shadow_width // 2, ball_pos[1] + shadow_offset_y - shadow_height // 2)
-    screen.blit(shadow_surface, shadow_pos)
+    if shadow_alpha > 0:  # Рисуем тень только если она видима
+        shadow_surface = pygame.Surface((shadow_width, shadow_height), pygame.SRCALPHA)
+        pygame.draw.ellipse(shadow_surface, (*SHADOW_COLOR, shadow_alpha), (0, 0, shadow_width, shadow_height))
+        shadow_pos = (ball_pos[0] - shadow_width // 2, ball_pos[1] + shadow_offset_y - shadow_height // 2)
+        screen.blit(shadow_surface, shadow_pos)
 
-    # Мяч с текстурой
-    ball_rect = ball_image.get_rect(center=ball_pos)
-    screen.blit(ball_image, ball_rect)
+    # --- Мяч с текстурой и масштабированием ---
+    z_ball = (table_bottom_y - ball_pos[1]) / (table_bottom_y - table_top_y)
+    z_ball = max(0, min(1, z_ball))  # Ограничиваем Z в [0, 1]
+    ball_scale = 50 - 20 * z_ball  # От 50x50 (Z=0) до 30x30 (Z=1)
+    scaled_ball = pygame.transform.smoothscale(ball_image, (int(ball_scale), int(ball_scale)))
+    ball_rect = scaled_ball.get_rect(center=ball_pos)
+    screen.blit(scaled_ball, ball_rect)
 
-    # Ракетка
+    # --- Ракетка ---
     screen.blit(paddle_image, paddle_pos)
 
-    # Счёт
+    # --- Счёт ---
     score_text = font.render(f"{player_score}:{opponent_score}", True, SCORE_COLOR)
     score_rect = score_text.get_rect(center=(WIDTH // 2, 50))
     screen.blit(score_text, score_rect)
 
-    # Кнопки
+    # --- Кнопки ---
     menu_button_rect = pygame.Rect(20, 20, 150, 50)
     restart_button_rect = pygame.Rect(190, 20, 150, 50)
-
     mouse_pos = pygame.mouse.get_pos()
     if menu_button_rect.collidepoint(mouse_pos):
         pygame.draw.rect(screen, BUTTON_HOVER_COLOR, menu_button_rect)
@@ -220,7 +220,6 @@ def draw_scene(frame_surface=None):
         pygame.draw.rect(screen, BUTTON_COLOR, menu_button_rect)
     menu_text = font.render("В меню", True, BUTTON_TEXT_COLOR)
     screen.blit(menu_text, menu_button_rect.move(20, 5))
-
     if restart_button_rect.collidepoint(mouse_pos):
         pygame.draw.rect(screen, BUTTON_HOVER_COLOR, restart_button_rect)
     else:
@@ -247,13 +246,13 @@ while running:
                     player_score = 0  # Сбрасываем счёт игрока
                     opponent_score = 0  # Сбрасываем счёт противника
                     ball_pos = [WIDTH // 2, HEIGHT // 3]  # Сброс позиции мяча
-                    reset_angle = random.uniform(MIN_BALL_ANGLE, MAX_BALL_ANGLE)  # Случайный угол в диапазоне
-                    speed = random.uniform(6, 8)  # Случайная скорость
-                    # Начальная скорость мяча
+                    reset_angle = random.uniform(MIN_BALL_ANGLE, MAX_BALL_ANGLE)
+                    speed = random.uniform(6, 8)
                     ball_velocity = [
                         speed * math.cos(reset_angle) * random.choice([-1, 1]),
-                        speed * math.sin(reset_angle) 
+                        speed * math.sin(reset_angle)
                     ]
+                    ball_direction = 1  # Сброс направления (вверх)
             elif game_state == GAME:
                 # Кнопки в игре
                 menu_button_rect, restart_button_rect = draw_scene()
@@ -264,36 +263,41 @@ while running:
                     opponent_score = 0  # Сброс счёта противника
                     ball_pos = [WIDTH // 2, HEIGHT // 3]  # Сброс позиции мяча
                     paddle_pos = [WIDTH // 2 - 70, HEIGHT - 140]  # Сброс позиции ракетки
-                    ball_velocity = [random.choice([-5, 5]), 5] # При сбросе мяча добавьте случайность:
+                    reset_angle = random.uniform(MIN_BALL_ANGLE, MAX_BALL_ANGLE)
+                    speed = random.uniform(6, 8)
+                    ball_velocity = [
+                        speed * math.cos(reset_angle) * random.choice([-1, 1]),
+                        speed * math.sin(reset_angle)
+                    ]
+                    ball_direction = 1  # Сброс направления (вверх)
 
     # --- Обновление состояния ---
     if game_state == GAME:
         # Получаем координаты руки и кадр
-        frame, coords = tracker.process_frame(draw_point=True)  # Включаем точку для отображения на камере
+        frame, coords = tracker.process_frame(draw_point=True)
         if frame is not None:
-            # Конвертируем кадр OpenCV (BGR) в RGB и затем в текстуру Pygame
             frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             frame_surface = pygame.surfarray.make_surface(frame_rgb.swapaxes(0, 1))
-            # Масштабируем кадр до размера окна камеры (320x240)
             frame_surface = pygame.transform.scale(frame_surface, (320, 240))
         else:
             frame_surface = None
 
         if coords:
             x, y = coords
-            # Переводим нормализованные координаты в позицию ракетки
-            paddle_pos[0] = int(x * WIDTH - 70)  # Смещение на половину ширины ракетки
+            paddle_pos[0] = int(x * WIDTH - 70)
             paddle_pos[1] = int(y * HEIGHT - 70)
             if (paddle_pos[1] < 350) or (paddle_pos[1] > 650) or (paddle_pos[0] < 100) or (paddle_pos[0] > 1000):
                 paddle_image.set_alpha(120)
             else:
                 paddle_image.set_alpha(255)
-            # Ограничиваем движение ракетки по горизонтали
             paddle_pos[0] = max(0, min(paddle_pos[0], WIDTH - 140))
 
         # Обновление физики мяча
         ball_pos[0] += ball_velocity[0]
         ball_pos[1] += ball_velocity[1]
+
+        # Обновление направления мяча
+        ball_direction = -1 if ball_velocity[1] > 0 else 1
 
         # Уменьшаем таймер кулдауна
         if paddle_collision_cooldown > 0:
@@ -305,7 +309,8 @@ while running:
             if abs(ball_velocity[1]) < 3:  # Если скорость слишком мала
                 ball_velocity[1] = 8  # Устанавливаем достаточную скорость
             else:
-                ball_velocity[1] = -ball_velocity[1] * 0.95  # Меньшее затухание
+                ball_velocity[1] = -ball_velocity[1] * 0.95
+            ball_direction = -1  # Направление вниз после отскока
 
         # Пропадание мяча за нижнюю границу
         if ball_pos[1] >= table_bottom_y:
@@ -313,24 +318,26 @@ while running:
             hit_lose.play()
             ball_pos = [WIDTH // 2, HEIGHT // 3]  # Сброс позиции
             reset_angle = random.uniform(MIN_BALL_ANGLE, MAX_BALL_ANGLE)
-            speed = random.uniform(6, 8)  # Случайная скорость в диапазоне 6-8
+            speed = random.uniform(6, 8)
             ball_velocity = [
-                speed * math.cos(reset_angle) * random.choice([-1, 1]),  # Случайное направление по горизонтали
-                speed * math.sin(reset_angle)  # Всегда вверх (к противнику)
+                speed * math.cos(reset_angle) * random.choice([-1, 1]),
+                speed * math.sin(reset_angle)
             ]
+            ball_direction = 1  # Сброс направления (вверх)
             random.seed(time.time() + random.random())
-            
+
         # Столкновение с ракеткой
         paddle_rect = pygame.Rect(paddle_pos[0], paddle_pos[1], 140, 140)
-        collision_rect = paddle_rect.inflate(-paddle_rect.width // 2, -paddle_rect.height // 2)  # Сужаем зону
+        collision_rect = paddle_rect.inflate(-paddle_rect.width // 2, -paddle_rect.height // 2)
         ball_rect = pygame.Rect(ball_pos[0] - 12, ball_pos[1] - 12, 24, 24)
         if collision_rect.colliderect(ball_rect) and paddle_collision_cooldown == 0:
             hit_sound.play()
             relative_x = (ball_pos[0] - (paddle_pos[0] + 70)) / 70
             ball_velocity[0] = relative_x * 12
-            ball_velocity[1] = -abs(ball_velocity[1]) * 1.2  # Ускорение при ударе
+            ball_velocity[1] = -abs(ball_velocity[1]) * 1.2
             player_score += 1
-            paddle_collision_cooldown = 20  # ~0.33 сек при 60 FPS
+            paddle_collision_cooldown = 20
+            ball_direction = 1  # Направление вверх после удара
 
     # --- Рендер ---
     if game_state == MENU:
