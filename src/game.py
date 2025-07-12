@@ -226,7 +226,11 @@ while running:
 
         # Отскок от верхней границы (стенка)
         if ball_pos[1] <= table_top_y:
-            ball_velocity[1] = -ball_velocity[1] * 0.9  # Затухание
+            # Добавляем минимальную скорость после отскока
+            if abs(ball_velocity[1]) < 3:  # Если скорость слишком мала
+                ball_velocity[1] = 8  # Устанавливаем достаточную скорость
+            else:
+                ball_velocity[1] = -ball_velocity[1] * 0.95  # Меньшее затухание
 
         # Пропадание мяча за нижнюю границу (очко для стенки)
         if ball_pos[1] >= table_bottom_y:
